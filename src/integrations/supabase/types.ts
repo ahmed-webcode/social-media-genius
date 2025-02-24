@@ -9,7 +9,72 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      scheduled_posts: {
+        Row: {
+          created_at: string | null
+          hashtags: string[] | null
+          id: string
+          performance: Json | null
+          platform: string
+          prompt: string
+          scheduled_for: string
+          status: string
+          video_url: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          hashtags?: string[] | null
+          id?: string
+          performance?: Json | null
+          platform: string
+          prompt: string
+          scheduled_for: string
+          status: string
+          video_url?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          hashtags?: string[] | null
+          id?: string
+          performance?: Json | null
+          platform?: string
+          prompt?: string
+          scheduled_for?: string
+          status?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
+      trending_topics: {
+        Row: {
+          created_at: string | null
+          id: string
+          novelty: number
+          platform: string
+          score: number
+          topic: string
+          velocity: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          novelty: number
+          platform: string
+          score: number
+          topic: string
+          velocity: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          novelty?: number
+          platform?: string
+          score?: number
+          topic?: string
+          velocity?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
