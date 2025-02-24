@@ -8,6 +8,15 @@ import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import type { ScheduledPost } from "@/lib/types";
 import { supabase } from "@/integrations/supabase/client";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+
+const PLATFORMS = {
+  YOUTUBE: 'YouTube',
+  TIKTOK: 'TikTok',
+  INSTAGRAM: 'Instagram',
+  SNAPCHAT: 'Snapchat'
+} as const;
 
 const VideoGenerator = () => {
   const [prompt, setPrompt] = useState("");
@@ -17,6 +26,8 @@ const VideoGenerator = () => {
     date.setHours(date.getHours() + 1);
     return date;
   });
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(['YouTube']);
+  const [generateShorts, setGenerateShorts] = useState(true);
 
   const { data: scheduledPosts, refetch } = useQuery({
     queryKey: ['scheduledPosts'],
@@ -28,7 +39,6 @@ const VideoGenerator = () => {
 
       if (error) throw error;
       
-      // Transform the database response to match our ScheduledPost type
       return (data || []).map(post => ({
         id: post.id,
         prompt: post.prompt,
@@ -40,39 +50,47 @@ const VideoGenerator = () => {
         performance: post.performance
       })) as ScheduledPost[];
     },
-    refetchInterval: 30000 // Refetch every 30 seconds
+    refetchInterval: 30000
   });
 
   const handleGenerate = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-video', {
-        body: { prompt }
+      // Generate the main YouTube video
+      const { data: youtubeData, error: youtubeError } = await supabase.functions.invoke('generate-video', {
+        body: { 
+          prompt,
+          platform: 'YouTube',
+          generateShorts: generateShorts
+        }
       });
 
-      if (error || data?.status === 'error') {
-        throw new Error(data?.message || error.message);
+      if (youtubeError || youtubeData?.status === 'error') {
+        throw new Error(youtubeData?.message || youtubeError.message);
       }
 
-      // Save the scheduled post
+      // Create posts for each selected platform
+      const posts = selectedPlatforms.map(platform => ({
+        prompt,
+        scheduled_for: scheduledTime.toISOString(),
+        status: 'pending',
+        platform,
+        hashtags: [],
+        video_url: platform === 'YouTube' ? youtubeData.videoUrl : youtubeData.shortsUrl
+      }));
+
+      // Save all scheduled posts
       const { error: insertError } = await supabase
         .from('scheduled_posts')
-        .insert({
-          prompt,
-          scheduled_for: scheduledTime.toISOString(),
-          status: 'pending',
-          platform: 'TikTok',
-          hashtags: [],
-          video_url: data.videoUrl
-        });
+        .insert(posts);
 
       if (insertError) throw insertError;
 
-      toast.success("Video scheduled successfully!");
+      toast.success("Videos scheduled successfully!");
       setPrompt("");
       refetch();
     } catch (error: any) {
-      toast.error("Failed to generate video: " + error.message);
+      toast.error("Failed to generate videos: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -85,7 +103,7 @@ const VideoGenerator = () => {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="prompt">Prompt</Label>
+          <Label htmlFor="prompt">Video Concept</Label>
           <Input
             id="prompt"
             placeholder="Enter your video concept..."
@@ -93,6 +111,38 @@ const VideoGenerator = () => {
             onChange={(e) => setPrompt(e.target.value)}
           />
         </div>
+        
+        <div className="space-y-2">
+          <Label>Platforms</Label>
+          <div className="grid grid-cols-2 gap-4">
+            {Object.values(PLATFORMS).map((platform) => (
+              <div key={platform} className="flex items-center space-x-2">
+                <Checkbox
+                  id={platform}
+                  checked={selectedPlatforms.includes(platform)}
+                  onCheckedChange={(checked) => {
+                    setSelectedPlatforms(prev => 
+                      checked 
+                        ? [...prev, platform]
+                        : prev.filter(p => p !== platform)
+                    );
+                  }}
+                />
+                <Label htmlFor={platform}>{platform}</Label>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="generateShorts"
+            checked={generateShorts}
+            onCheckedChange={(checked) => setGenerateShorts(!!checked)}
+          />
+          <Label htmlFor="generateShorts">Generate Shorts Version</Label>
+        </div>
+
         <div className="space-y-2">
           <Label htmlFor="scheduledTime">Schedule Time</Label>
           <Input
@@ -102,12 +152,13 @@ const VideoGenerator = () => {
             onChange={(e) => setScheduledTime(new Date(e.target.value))}
           />
         </div>
+
         <Button 
           onClick={handleGenerate} 
-          disabled={loading || !prompt}
+          disabled={loading || !prompt || selectedPlatforms.length === 0}
           className="w-full transition-all duration-300"
         >
-          {loading ? "Scheduling..." : "Schedule Video"}
+          {loading ? "Generating..." : "Generate & Schedule Videos"}
         </Button>
 
         {scheduledPosts && scheduledPosts.length > 0 && (
@@ -119,7 +170,10 @@ const VideoGenerator = () => {
                   key={post.id}
                   className="p-2 bg-secondary rounded-md text-sm flex justify-between items-center"
                 >
-                  <span>{post.prompt}</span>
+                  <div className="flex flex-col">
+                    <span>{post.prompt}</span>
+                    <span className="text-xs text-muted-foreground">{post.platform}</span>
+                  </div>
                   <span className="text-xs text-muted-foreground">
                     {new Date(post.scheduledFor).toLocaleString()}
                   </span>
