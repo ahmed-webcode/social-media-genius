@@ -2,6 +2,7 @@
 import MetricsCard from "@/components/MetricsCard";
 import VideoGenerator from "@/components/VideoGenerator";
 import TrendingTopics from "@/components/TrendingTopics";
+import AutomationDashboard from "@/components/AutomationDashboard";
 import { useQuery } from "@tanstack/react-query";
 
 const Index = () => {
@@ -22,7 +23,7 @@ const Index = () => {
     <div className="container mx-auto p-6 space-y-8">
       <header className="space-y-2 animate-fadeIn">
         <h1 className="text-4xl font-bold tracking-tight">Social Media Manager</h1>
-        <p className="text-muted-foreground">Generate and manage your social media content</p>
+        <p className="text-muted-foreground">Automated content generation and posting</p>
       </header>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -44,7 +45,7 @@ const Index = () => {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <VideoGenerator />
+        <AutomationDashboard />
         <TrendingTopics />
       </div>
     </div>
