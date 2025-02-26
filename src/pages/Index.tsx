@@ -26,6 +26,11 @@ const Index = () => {
         <p className="text-muted-foreground">Automated content generation and posting</p>
       </header>
 
+      {/* Video Generator moved to top for better visibility */}
+      <div className="mb-8">
+        <VideoGenerator />
+      </div>
+
       <div className="grid gap-4 md:grid-cols-3">
         <MetricsCard
           title="Total Views"

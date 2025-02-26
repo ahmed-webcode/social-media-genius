@@ -99,24 +99,27 @@ const VideoGenerator = () => {
   return (
     <Card className="w-full animate-fadeIn">
       <CardHeader>
-        <CardTitle>Generate Video</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <span className="text-2xl">Generate Video</span>
+        </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6">
         <div className="space-y-2">
-          <Label htmlFor="prompt">Video Concept</Label>
+          <Label htmlFor="prompt" className="text-lg font-medium">Write Your Video Concept</Label>
           <Input
             id="prompt"
-            placeholder="Enter your video concept..."
+            placeholder="Enter an amazing video idea (e.g., '5 mind-blowing AI tools that will change your life')"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
+            className="h-20 px-4 py-2 text-lg"
           />
         </div>
         
         <div className="space-y-2">
-          <Label>Platforms</Label>
+          <Label className="text-lg font-medium">Select Platforms</Label>
           <div className="grid grid-cols-2 gap-4">
             {Object.values(PLATFORMS).map((platform) => (
-              <div key={platform} className="flex items-center space-x-2">
+              <div key={platform} className="flex items-center space-x-2 p-2 border rounded-md hover:bg-secondary/50 transition-colors">
                 <Checkbox
                   id={platform}
                   checked={selectedPlatforms.includes(platform)}
@@ -128,35 +131,36 @@ const VideoGenerator = () => {
                     );
                   }}
                 />
-                <Label htmlFor={platform}>{platform}</Label>
+                <Label htmlFor={platform} className="text-base">{platform}</Label>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 p-2 border rounded-md hover:bg-secondary/50 transition-colors">
           <Checkbox
             id="generateShorts"
             checked={generateShorts}
             onCheckedChange={(checked) => setGenerateShorts(!!checked)}
           />
-          <Label htmlFor="generateShorts">Generate Shorts Version</Label>
+          <Label htmlFor="generateShorts" className="text-base">Generate Shorts Version</Label>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="scheduledTime">Schedule Time</Label>
+          <Label htmlFor="scheduledTime" className="text-lg font-medium">Schedule Time</Label>
           <Input
             id="scheduledTime"
             type="datetime-local"
             value={scheduledTime.toISOString().slice(0, 16)}
             onChange={(e) => setScheduledTime(new Date(e.target.value))}
+            className="text-base"
           />
         </div>
 
         <Button 
           onClick={handleGenerate} 
           disabled={loading || !prompt || selectedPlatforms.length === 0}
-          className="w-full transition-all duration-300"
+          className="w-full py-6 text-lg font-semibold transition-all duration-300 hover:scale-[1.02]"
         >
           {loading ? "Generating..." : "Generate & Schedule Videos"}
         </Button>
