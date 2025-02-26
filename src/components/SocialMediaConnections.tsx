@@ -45,9 +45,27 @@ const SocialMediaConnections = () => {
   });
 
   const handleConnect = async (platform: string) => {
-    toast.info(`Connecting to ${platform}...`);
-    // TODO: Implement OAuth flow for each platform
-    // This will be implemented once you provide the OAuth credentials for each platform
+    if (platform === 'Snapchat') {
+      try {
+        // Call the Supabase Edge Function to handle Snapchat OAuth
+        const { data, error } = await supabase.functions.invoke('init-snapchat-oauth', {
+          body: {
+            redirectUrl: window.location.origin + '/auth/callback/snapchat'
+          }
+        });
+
+        if (error) throw error;
+        if (data?.authUrl) {
+          // Redirect to Snapchat's OAuth page
+          window.location.href = data.authUrl;
+        }
+      } catch (error: any) {
+        toast.error(`Failed to connect to Snapchat: ${error.message}`);
+      }
+    } else {
+      toast.info(`Connecting to ${platform}...`);
+      // TODO: Implement OAuth flow for other platforms
+    }
   };
 
   const handleDisconnect = async (platform: string) => {
@@ -69,6 +87,36 @@ const SocialMediaConnections = () => {
       toast.error(`Failed to disconnect: ${error.message}`);
     }
   };
+
+  // Handle OAuth callback
+  useEffect(() => {
+    const handleOAuthCallback = async () => {
+      if (window.location.pathname === '/auth/callback/snapchat') {
+        const code = new URLSearchParams(window.location.search).get('code');
+        if (code) {
+          try {
+            const { data, error } = await supabase.functions.invoke('complete-snapchat-oauth', {
+              body: { 
+                code,
+                redirectUri: window.location.origin + '/auth/callback/snapchat'
+              }
+            });
+
+            if (error) throw error;
+
+            await refetch();
+            toast.success('Successfully connected to Snapchat!');
+            // Remove the code from the URL
+            window.history.replaceState({}, '', '/');
+          } catch (error: any) {
+            toast.error(`Failed to complete Snapchat connection: ${error.message}`);
+          }
+        }
+      }
+    };
+
+    handleOAuthCallback();
+  }, [refetch]);
 
   return (
     <Card>
