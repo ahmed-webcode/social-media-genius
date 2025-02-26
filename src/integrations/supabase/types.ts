@@ -9,6 +9,30 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          id: string
+          updated_at: string | null
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          id: string
+          updated_at?: string | null
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
       scheduled_posts: {
         Row: {
           created_at: string | null
@@ -19,6 +43,7 @@ export type Database = {
           prompt: string
           scheduled_for: string
           status: string
+          user_id: string | null
           video_url: string | null
         }
         Insert: {
@@ -30,6 +55,7 @@ export type Database = {
           prompt: string
           scheduled_for: string
           status: string
+          user_id?: string | null
           video_url?: string | null
         }
         Update: {
@@ -41,9 +67,18 @@ export type Database = {
           prompt?: string
           scheduled_for?: string
           status?: string
+          user_id?: string | null
           video_url?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_posts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       trending_topics: {
         Row: {

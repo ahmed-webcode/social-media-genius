@@ -8,8 +8,8 @@ import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import type { ScheduledPost } from "@/lib/types";
 import { supabase } from "@/integrations/supabase/client";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useNavigate } from "react-router-dom";
 
 const PLATFORMS = {
   YOUTUBE: 'YouTube',
@@ -19,6 +19,7 @@ const PLATFORMS = {
 } as const;
 
 const VideoGenerator = () => {
+  const navigate = useNavigate();
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [scheduledTime, setScheduledTime] = useState<Date>(() => {
@@ -32,9 +33,13 @@ const VideoGenerator = () => {
   const { data: scheduledPosts, refetch } = useQuery({
     queryKey: ['scheduledPosts'],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
       const { data, error } = await supabase
         .from('scheduled_posts')
         .select('*')
+        .eq('user_id', user.id)
         .order('scheduled_for', { ascending: true });
 
       if (error) throw error;
@@ -56,6 +61,9 @@ const VideoGenerator = () => {
   const handleGenerate = async () => {
     setLoading(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
       // Generate the main YouTube video
       const { data: youtubeData, error: youtubeError } = await supabase.functions.invoke('generate-video', {
         body: { 
@@ -76,7 +84,8 @@ const VideoGenerator = () => {
         status: 'pending',
         platform,
         hashtags: [],
-        video_url: platform === 'YouTube' ? youtubeData.videoUrl : youtubeData.shortsUrl
+        video_url: platform === 'YouTube' ? youtubeData.videoUrl : youtubeData.shortsUrl,
+        user_id: user.id
       }));
 
       // Save all scheduled posts
@@ -96,11 +105,17 @@ const VideoGenerator = () => {
     }
   };
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate('/auth');
+  };
+
   return (
     <Card className="w-full animate-fadeIn">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle className="flex items-center justify-between">
           <span className="text-2xl">Generate Video</span>
+          <Button variant="ghost" onClick={handleSignOut}>Sign Out</Button>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
