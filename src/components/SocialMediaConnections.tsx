@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { Youtube, Instagram, SnapchatGhost, Music } from "lucide-react";
+import { Youtube, Instagram, Ghost, Music } from "lucide-react";
 
 interface SocialAccount {
   platform: string;
@@ -17,7 +17,7 @@ const PLATFORMS = [
   { name: 'YouTube', icon: Youtube, color: 'text-red-600' },
   { name: 'Instagram', icon: Instagram, color: 'text-pink-600' },
   { name: 'TikTok', icon: Music, color: 'text-black' },
-  { name: 'Snapchat', icon: SnapchatGhost, color: 'text-yellow-400' },
+  { name: 'Snapchat', icon: Ghost, color: 'text-yellow-400' },
 ];
 
 const SocialMediaConnections = () => {
