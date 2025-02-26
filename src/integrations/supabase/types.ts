@@ -80,6 +80,50 @@ export type Database = {
           },
         ]
       }
+      social_media_accounts: {
+        Row: {
+          access_token: string
+          account_id: string | null
+          account_name: string | null
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          platform: string
+          refresh_token: string | null
+          user_id: string | null
+        }
+        Insert: {
+          access_token: string
+          account_id?: string | null
+          account_name?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          platform: string
+          refresh_token?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          access_token?: string
+          account_id?: string | null
+          account_name?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          platform?: string
+          refresh_token?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_media_accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trending_topics: {
         Row: {
           created_at: string | null

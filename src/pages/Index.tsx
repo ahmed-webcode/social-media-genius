@@ -3,6 +3,7 @@ import MetricsCard from "@/components/MetricsCard";
 import VideoGenerator from "@/components/VideoGenerator";
 import TrendingTopics from "@/components/TrendingTopics";
 import AutomationDashboard from "@/components/AutomationDashboard";
+import SocialMediaConnections from "@/components/SocialMediaConnections";
 import { useQuery } from "@tanstack/react-query";
 
 const Index = () => {
@@ -26,7 +27,12 @@ const Index = () => {
         <p className="text-muted-foreground">Automated content generation and posting</p>
       </header>
 
-      {/* Video Generator moved to top for better visibility */}
+      {/* Social Media Connections */}
+      <div className="mb-8">
+        <SocialMediaConnections />
+      </div>
+
+      {/* Video Generator */}
       <div className="mb-8">
         <VideoGenerator />
       </div>
