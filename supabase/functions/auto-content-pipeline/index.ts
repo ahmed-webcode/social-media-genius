@@ -14,31 +14,34 @@ serve(async (req) => {
   }
 
   try {
-    // 1. Topic Selection
-    const topic = await selectTrending();
-    
-    // 2. Content Safety Check
-    if (await isToxic(topic)) {
-      throw new Error('Topic failed safety check');
-    }
+    // Generate 3 viral topics for multiple daily posts
+    const topics = await generateViralTopics();
+    const results = [];
 
-    // 3. Generate Video
-    const videoUrl = await generateVideo(topic);
+    for (const topic of topics) {
+      // Validate topic safety
+      if (await isToxic(topic)) {
+        console.log(`Topic "${topic}" failed safety check, skipping...`);
+        continue;
+      }
 
-    // 4. Generate Hashtags
-    const hashtags = await generateHashtags(topic);
+      // Generate optimized content
+      const videoPrompt = await createViralVideoPrompt(topic);
+      const videoUrl = await generateVideo(videoPrompt);
+      const hashtags = await generateViralHashtags(topic);
+      const schedule = determineOptimalPostTime();
 
-    // 5. Schedule Post
-    const schedule = determineOptimalPostTime();
-
-    return new Response(JSON.stringify({
-      status: 'success',
-      data: {
+      results.push({
         topic,
         videoUrl,
         hashtags,
         scheduledFor: schedule,
-      }
+      });
+    }
+
+    return new Response(JSON.stringify({
+      status: 'success',
+      data: results,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -55,20 +58,61 @@ serve(async (req) => {
   }
 });
 
-async function selectTrending() {
-  // Simplified trending topic selection
-  const trends = [
-    { topic: "AI Developments", velocity: 0.8, novelty: 0.9 },
-    { topic: "Tech Innovation", velocity: 0.7, novelty: 0.8 },
-  ];
-  return trends.reduce((a, b) => 
-    (a.velocity * a.novelty > b.velocity * b.novelty) ? a : b
-  ).topic;
+async function generateViralTopics() {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${openAIApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      messages: [{
+        role: 'system',
+        content: `You are a viral content expert. Generate 3 highly engaging topic ideas that:
+          - Have proven viral potential
+          - Appeal to broad audiences
+          - Trigger emotional responses
+          - Are timely and relevant
+          - Have shareable value
+          Return only the topics as a comma-separated list.`
+      }],
+    }),
+  });
+
+  const data = await response.json();
+  return data.choices[0].message.content.split(',').map(topic => topic.trim());
+}
+
+async function createViralVideoPrompt(topic: string) {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${openAIApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      messages: [{
+        role: 'system',
+        content: 'Create a detailed video prompt that will generate viral-worthy visuals.'
+      }, {
+        role: 'user',
+        content: `Create a viral video concept for: ${topic}. Include elements known to drive engagement like:
+          - Eye-catching opening scenes
+          - Emotional hooks
+          - Strong visual storytelling
+          - Call-to-action elements`
+      }],
+    }),
+  });
+
+  const data = await response.json();
+  return data.choices[0].message.content;
 }
 
 async function isToxic(text: string) {
   try {
-    // Using OpenAI's moderation API instead of HuggingFace
     const response = await fetch('https://api.openai.com/v1/moderations', {
       method: 'POST',
       headers: {
@@ -86,7 +130,7 @@ async function isToxic(text: string) {
   }
 }
 
-async function generateVideo(topic: string) {
+async function generateVideo(prompt: string) {
   const response = await fetch('https://api.openai.com/v1/images/generations', {
     method: 'POST',
     headers: {
@@ -95,9 +139,10 @@ async function generateVideo(topic: string) {
     },
     body: JSON.stringify({
       model: 'dall-e-3',
-      prompt: `Create a vertical video about ${topic} with viral potential`,
+      prompt: prompt,
       n: 1,
       size: '1024x1024',
+      quality: 'hd',
     }),
   });
 
@@ -105,7 +150,7 @@ async function generateVideo(topic: string) {
   return data.data?.[0]?.url || '';
 }
 
-async function generateHashtags(topic: string) {
+async function generateViralHashtags(topic: string) {
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -113,25 +158,31 @@ async function generateHashtags(topic: string) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-3.5-turbo',
+      model: 'gpt-4o',
       messages: [{
         role: 'system',
-        content: 'Generate 5 trending hashtags for the given topic. Return them as a comma-separated list.'
+        content: 'Generate viral-optimized hashtags that maximize reach and engagement.'
       }, {
         role: 'user',
-        content: topic
+        content: `Generate 10 trending and viral-optimized hashtags for: ${topic}. Include:
+          - Trending hashtags
+          - Niche-specific tags
+          - High-volume tags
+          - Engagement-focused tags`
       }],
     }),
   });
 
   const data = await response.json();
-  const hashtagString = data.choices?.[0]?.message?.content || '';
+  const hashtagString = data.choices[0].message.content;
   return hashtagString.split(',').map(tag => tag.trim());
 }
 
 function determineOptimalPostTime() {
   const now = new Date();
-  // Schedule for peak hours (assuming UTC)
-  now.setHours(now.getHours() + Math.floor(Math.random() * 24));
+  // Targeting peak engagement hours (12pm-8pm in major time zones)
+  const peakHours = [12, 13, 14, 15, 16, 17, 18, 19, 20];
+  const randomPeakHour = peakHours[Math.floor(Math.random() * peakHours.length)];
+  now.setHours(randomPeakHour);
   return now.toISOString();
 }
