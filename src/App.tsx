@@ -11,6 +11,7 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
+import TikTokVerification from "./pages/TikTokVerification";
 
 const queryClient = new QueryClient();
 
@@ -48,6 +49,7 @@ const App = () => {
             />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/terms-of-service" element={<TermsOfService />} />
+            <Route path="/tiktok-verification" element={<TikTokVerification />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
