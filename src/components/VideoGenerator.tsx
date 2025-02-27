@@ -18,12 +18,17 @@ const PLATFORMS = {
   SNAPCHAT: 'Snapchat'
 } as const;
 
+// GMT+3 timezone offset in milliseconds
+const GMT_PLUS_3_OFFSET = 3 * 60 * 60 * 1000;
+
 const VideoGenerator = () => {
   const navigate = useNavigate();
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [scheduledTime, setScheduledTime] = useState<Date>(() => {
+    // Set initial time to GMT+3 (current time + 1 hour)
     const date = new Date();
+    date.setTime(date.getTime() + GMT_PLUS_3_OFFSET);
     date.setHours(date.getHours() + 1);
     return date;
   });
@@ -77,10 +82,13 @@ const VideoGenerator = () => {
         throw new Error(youtubeData?.message || youtubeError.message);
       }
 
+      // Convert scheduled time to ISO string with proper timezone adjustment
+      const adjustedScheduledTime = new Date(scheduledTime.getTime());
+      
       // Create posts for each selected platform
       const posts = selectedPlatforms.map(platform => ({
         prompt,
-        scheduled_for: scheduledTime.toISOString(),
+        scheduled_for: adjustedScheduledTime.toISOString(),
         status: 'pending',
         platform,
         hashtags: [],
@@ -108,6 +116,15 @@ const VideoGenerator = () => {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate('/auth');
+  };
+
+  // Format date for display with GMT+3 timezone
+  const formatDateForDisplay = (date: Date): string => {
+    return new Date(date.getTime()).toLocaleString('en-US', {
+      timeZone: 'Asia/Baghdad', // Baghdad is in GMT+3
+      dateStyle: 'medium',
+      timeStyle: 'short'
+    });
   };
 
   return (
@@ -162,7 +179,7 @@ const VideoGenerator = () => {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="scheduledTime" className="text-lg font-medium">Schedule Time</Label>
+          <Label htmlFor="scheduledTime" className="text-lg font-medium">Schedule Time (GMT+3)</Label>
           <Input
             id="scheduledTime"
             type="datetime-local"
@@ -194,7 +211,7 @@ const VideoGenerator = () => {
                     <span className="text-xs text-muted-foreground">{post.platform}</span>
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    {new Date(post.scheduledFor).toLocaleString()}
+                    {formatDateForDisplay(post.scheduledFor)}
                   </span>
                 </div>
               ))}
