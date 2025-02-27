@@ -7,8 +7,9 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
@@ -19,6 +20,8 @@ serve(async (req) => {
       throw new Error('Missing Snapchat client ID')
     }
 
+    console.log("Initiating Snapchat OAuth with redirect URL:", redirectUrl);
+
     // Construct the Snapchat OAuth URL
     const scope = 'snapchat-marketing-api'
     const authUrl = `https://accounts.snapchat.com/login/oauth2/authorize?` +
@@ -26,6 +29,8 @@ serve(async (req) => {
       `redirect_uri=${encodeURIComponent(redirectUrl)}&` +
       `response_type=code&` +
       `scope=${scope}`
+
+    console.log("Generated Snapchat OAuth URL:", authUrl);
 
     return new Response(
       JSON.stringify({ authUrl }),
@@ -35,6 +40,7 @@ serve(async (req) => {
       },
     )
   } catch (error) {
+    console.error("Snapchat OAuth init error:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {

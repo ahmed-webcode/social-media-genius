@@ -47,6 +47,11 @@ const App = () => {
               path="/auth" 
               element={session ? <Navigate to="/" /> : <Auth />} 
             />
+            {/* Handle OAuth callbacks */}
+            <Route 
+              path="/auth/callback/snapchat" 
+              element={session ? <Index /> : <Navigate to="/auth" />} 
+            />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/terms-of-service" element={<TermsOfService />} />
             <Route path="/tiktok-verification" element={<TikTokVerification />} />

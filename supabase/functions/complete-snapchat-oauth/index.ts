@@ -8,8 +8,9 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
@@ -22,6 +23,8 @@ serve(async (req) => {
     if (!clientId || !clientSecret || !supabaseUrl || !supabaseServiceKey) {
       throw new Error('Missing required environment variables')
     }
+
+    console.log("Completing Snapchat OAuth with code:", code.substring(0, 5) + "...");
 
     // Exchange the code for an access token
     const tokenResponse = await fetch('https://accounts.snapchat.com/login/oauth2/access_token', {
@@ -41,8 +44,11 @@ serve(async (req) => {
     const tokenData = await tokenResponse.json()
 
     if (!tokenResponse.ok) {
+      console.error("Token exchange error:", tokenData);
       throw new Error(tokenData.error_description || 'Failed to get access token')
     }
+
+    console.log("Successfully obtained access token");
 
     // Get user info
     const userResponse = await fetch('https://adsapi.snapchat.com/v1/me', {
@@ -52,6 +58,7 @@ serve(async (req) => {
     })
 
     const userData = await userResponse.json()
+    console.log("Retrieved user data:", JSON.stringify(userData).substring(0, 100) + "...");
 
     // Initialize Supabase client
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
@@ -64,6 +71,8 @@ serve(async (req) => {
       throw new Error('Unauthorized')
     }
 
+    console.log("Authenticated as user:", user.id);
+
     // Store the tokens in the database
     const { error: dbError } = await supabase
       .from('social_media_accounts')
@@ -73,13 +82,16 @@ serve(async (req) => {
         access_token: tokenData.access_token,
         refresh_token: tokenData.refresh_token,
         expires_at: new Date(Date.now() + tokenData.expires_in * 1000).toISOString(),
-        account_name: userData.me.display_name,
+        account_name: userData.me.display_name || 'Snapchat User',
         account_id: userData.me.id,
       })
 
     if (dbError) {
+      console.error("Database error:", dbError);
       throw dbError
     }
+
+    console.log("Successfully stored account data in database");
 
     return new Response(
       JSON.stringify({ success: true }),
@@ -89,6 +101,7 @@ serve(async (req) => {
       },
     )
   } catch (error) {
+    console.error("Complete OAuth error:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {

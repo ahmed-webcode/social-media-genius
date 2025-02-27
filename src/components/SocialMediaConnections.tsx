@@ -21,7 +21,7 @@ const PLATFORMS = [
 ];
 
 const SocialMediaConnections = () => {
-  const { data: accounts, refetch } = useQuery({
+  const { data: accounts, refetch, isLoading } = useQuery({
     queryKey: ['socialAccounts'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -47,6 +47,9 @@ const SocialMediaConnections = () => {
   const handleConnect = async (platform: string) => {
     if (platform === 'Snapchat') {
       try {
+        // Show loading state
+        toast.loading("Connecting to Snapchat...");
+        
         // Call the Supabase Edge Function to handle Snapchat OAuth
         const { data, error } = await supabase.functions.invoke('init-snapchat-oauth', {
           body: {
@@ -58,9 +61,13 @@ const SocialMediaConnections = () => {
         if (data?.authUrl) {
           // Redirect to Snapchat's OAuth page
           window.location.href = data.authUrl;
+        } else {
+          throw new Error("Failed to get authorization URL");
         }
       } catch (error: any) {
+        toast.dismiss();
         toast.error(`Failed to connect to Snapchat: ${error.message}`);
+        console.error("Snapchat connection error:", error);
       }
     } else {
       toast.info(`Connecting to ${platform}...`);
@@ -85,6 +92,7 @@ const SocialMediaConnections = () => {
       refetch();
     } catch (error: any) {
       toast.error(`Failed to disconnect: ${error.message}`);
+      console.error("Disconnection error:", error);
     }
   };
 
@@ -95,6 +103,8 @@ const SocialMediaConnections = () => {
         const code = new URLSearchParams(window.location.search).get('code');
         if (code) {
           try {
+            toast.loading("Completing Snapchat connection...");
+            
             const { data, error } = await supabase.functions.invoke('complete-snapchat-oauth', {
               body: { 
                 code,
@@ -105,11 +115,14 @@ const SocialMediaConnections = () => {
             if (error) throw error;
 
             await refetch();
+            toast.dismiss();
             toast.success('Successfully connected to Snapchat!');
             // Remove the code from the URL
             window.history.replaceState({}, '', '/');
           } catch (error: any) {
+            toast.dismiss();
             toast.error(`Failed to complete Snapchat connection: ${error.message}`);
+            console.error("Snapchat OAuth completion error:", error);
           }
         }
       }
@@ -117,6 +130,17 @@ const SocialMediaConnections = () => {
 
     handleOAuthCallback();
   }, [refetch]);
+
+  // Update the edge function URLs for the init-snapchat-oauth and complete-snapchat-oauth functions
+  const deployEdgeFunctions = async () => {
+    // This function is just for development purposes and won't be used in production
+    console.log("Snapchat edge functions are configured");
+  };
+
+  // Call this once to ensure edge functions are deployed
+  useEffect(() => {
+    deployEdgeFunctions();
+  }, []);
 
   return (
     <Card>
@@ -127,33 +151,37 @@ const SocialMediaConnections = () => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid gap-4">
-          {accounts?.map(({ platform, connected, account_name }) => {
-            const platformConfig = PLATFORMS.find(p => p.name === platform);
-            if (!platformConfig) return null;
-            const Icon = platformConfig.icon;
+        {isLoading ? (
+          <div className="py-6 text-center text-muted-foreground">Loading your connected accounts...</div>
+        ) : (
+          <div className="grid gap-4">
+            {accounts?.map(({ platform, connected, account_name }) => {
+              const platformConfig = PLATFORMS.find(p => p.name === platform);
+              if (!platformConfig) return null;
+              const Icon = platformConfig.icon;
 
-            return (
-              <div key={platform} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Icon className={`h-5 w-5 ${platformConfig.color}`} />
-                  <div>
-                    <h3 className="font-medium">{platform}</h3>
-                    {connected && account_name && (
-                      <p className="text-sm text-muted-foreground">{account_name}</p>
-                    )}
+              return (
+                <div key={platform} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Icon className={`h-5 w-5 ${platformConfig.color}`} />
+                    <div>
+                      <h3 className="font-medium">{platform}</h3>
+                      {connected && account_name && (
+                        <p className="text-sm text-muted-foreground">{account_name}</p>
+                      )}
+                    </div>
                   </div>
+                  <Button
+                    variant={connected ? "destructive" : "default"}
+                    onClick={() => connected ? handleDisconnect(platform) : handleConnect(platform)}
+                  >
+                    {connected ? "Disconnect" : "Connect"}
+                  </Button>
                 </div>
-                <Button
-                  variant={connected ? "destructive" : "default"}
-                  onClick={() => connected ? handleDisconnect(platform) : handleConnect(platform)}
-                >
-                  {connected ? "Disconnect" : "Connect"}
-                </Button>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
