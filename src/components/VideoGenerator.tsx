@@ -65,36 +65,57 @@ const VideoGenerator = () => {
 
   const handleGenerate = async () => {
     setLoading(true);
+    
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Generate the main YouTube video
-      const { data: youtubeData, error: youtubeError } = await supabase.functions.invoke('generate-video', {
-        body: { 
-          prompt,
-          platform: 'YouTube',
-          generateShorts: generateShorts
-        }
-      });
+      // Show initial toast
+      const generatingToast = toast.loading("Generating videos...");
 
-      if (youtubeError || youtubeData?.status === 'error') {
-        throw new Error(youtubeData?.message || youtubeError.message);
-      }
+      // Generate videos for each selected platform
+      const generatedVideos = await Promise.all(
+        selectedPlatforms.map(async (platform) => {
+          // Call the generate-video function for each platform
+          const { data, error } = await supabase.functions.invoke('generate-video', {
+            body: { 
+              prompt,
+              platform,
+              generateShorts
+            }
+          });
 
+          if (error || data?.status === 'error') {
+            throw new Error(`Failed to generate video for ${platform}: ${data?.message || error.message}`);
+          }
+
+          return {
+            platform,
+            videoUrl: data.videoUrl,
+            shortsUrl: data.shortsUrl
+          };
+        })
+      );
+
+      // Dismiss the generating toast
+      toast.dismiss(generatingToast);
+      
       // Convert scheduled time to ISO string with proper timezone adjustment
       const adjustedScheduledTime = new Date(scheduledTime.getTime());
       
-      // Create posts for each selected platform
-      const posts = selectedPlatforms.map(platform => ({
+      // Create posts for each platform
+      const posts = generatedVideos.map(video => ({
         prompt,
         scheduled_for: adjustedScheduledTime.toISOString(),
         status: 'pending',
-        platform,
+        platform: video.platform,
         hashtags: [],
-        video_url: platform === 'YouTube' ? youtubeData.videoUrl : youtubeData.shortsUrl,
+        video_url: video.videoUrl,
         user_id: user.id
       }));
+
+      // Show scheduling toast
+      const schedulingToast = toast.loading("Scheduling posts...");
 
       // Save all scheduled posts
       const { error: insertError } = await supabase
@@ -103,10 +124,15 @@ const VideoGenerator = () => {
 
       if (insertError) throw insertError;
 
-      toast.success("Videos scheduled successfully!");
+      // Dismiss scheduling toast and show success
+      toast.dismiss(schedulingToast);
+      toast.success(`Successfully scheduled ${posts.length} videos!`);
+      
+      // Reset form
       setPrompt("");
       refetch();
     } catch (error: any) {
+      console.error("Video generation error:", error);
       toast.error("Failed to generate videos: " + error.message);
     } finally {
       setLoading(false);
