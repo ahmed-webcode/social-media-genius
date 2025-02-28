@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,6 +34,30 @@ const VideoGenerator = () => {
   });
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(['YouTube']);
   const [generateShorts, setGenerateShorts] = useState(true);
+  const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>([]);
+
+  // Check which social media platforms are connected
+  useEffect(() => {
+    const checkConnectedPlatforms = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data, error } = await supabase
+          .from('social_media_accounts')
+          .select('platform')
+          .eq('user_id', user.id);
+
+        if (error) throw error;
+        
+        setConnectedPlatforms(data.map(account => account.platform));
+      } catch (error) {
+        console.error("Failed to check connected platforms:", error);
+      }
+    };
+
+    checkConnectedPlatforms();
+  }, []);
 
   const { data: scheduledPosts, refetch } = useQuery({
     queryKey: ['scheduledPosts'],
@@ -69,6 +93,17 @@ const VideoGenerator = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
+
+      // Check for unconnected platforms that were selected
+      const unconnectedPlatforms = selectedPlatforms.filter(
+        platform => platform === 'Snapchat' && !connectedPlatforms.includes(platform)
+      );
+      
+      if (unconnectedPlatforms.length > 0) {
+        // Show warning for unconnected platforms
+        toast.warning(`Some selected platforms are not connected: ${unconnectedPlatforms.join(', ')}. Please connect them first.`);
+        throw new Error("Please connect all selected platforms first");
+      }
 
       // Show initial toast
       const generatingToast = toast.loading("Generating videos...");
@@ -176,23 +211,39 @@ const VideoGenerator = () => {
         <div className="space-y-2">
           <Label className="text-lg font-medium">Select Platforms</Label>
           <div className="grid grid-cols-2 gap-4">
-            {Object.values(PLATFORMS).map((platform) => (
-              <div key={platform} className="flex items-center space-x-2 p-2 border rounded-md hover:bg-secondary/50 transition-colors">
-                <Checkbox
-                  id={platform}
-                  checked={selectedPlatforms.includes(platform)}
-                  onCheckedChange={(checked) => {
-                    setSelectedPlatforms(prev => 
-                      checked 
-                        ? [...prev, platform]
-                        : prev.filter(p => p !== platform)
-                    );
-                  }}
-                />
-                <Label htmlFor={platform} className="text-base">{platform}</Label>
-              </div>
-            ))}
+            {Object.values(PLATFORMS).map((platform) => {
+              const isConnected = platform !== 'Snapchat' || connectedPlatforms.includes(platform);
+              return (
+                <div 
+                  key={platform} 
+                  className={`flex items-center space-x-2 p-2 border rounded-md hover:bg-secondary/50 transition-colors ${!isConnected ? 'border-orange-400' : ''}`}
+                >
+                  <Checkbox
+                    id={platform}
+                    checked={selectedPlatforms.includes(platform)}
+                    onCheckedChange={(checked) => {
+                      setSelectedPlatforms(prev => 
+                        checked 
+                          ? [...prev, platform]
+                          : prev.filter(p => p !== platform)
+                      );
+                    }}
+                  />
+                  <div className="flex flex-col">
+                    <Label htmlFor={platform} className="text-base">{platform}</Label>
+                    {!isConnected && (
+                      <span className="text-xs text-orange-500">Not connected</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
+          {!connectedPlatforms.includes('Snapchat') && (
+            <p className="text-xs text-orange-500 mt-1">
+              To post to Snapchat, please connect your account in the "Connected Accounts" section first.
+            </p>
+          )}
         </div>
 
         <div className="flex items-center space-x-2 p-2 border rounded-md hover:bg-secondary/50 transition-colors">
