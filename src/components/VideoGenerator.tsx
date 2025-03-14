@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +9,7 @@ import type { ScheduledPost } from "@/lib/types";
 import { supabase } from "@/integrations/supabase/client";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
+import { Download } from "lucide-react";
 
 const PLATFORMS = {
   YOUTUBE: 'YouTube',
@@ -188,6 +188,50 @@ const VideoGenerator = () => {
     });
   };
 
+  // New function to handle video downloads
+  const handleDownloadVideo = async (videoUrl: string, platform: string, prompt: string) => {
+    try {
+      // Show loading toast
+      const downloadingToast = toast.loading(`Downloading ${platform} video...`);
+      
+      // Fetch the video
+      const response = await fetch(videoUrl);
+      
+      // Check if fetch was successful
+      if (!response.ok) {
+        throw new Error(`Failed to download video: ${response.statusText}`);
+      }
+      
+      // Convert response to blob
+      const blob = await response.blob();
+      
+      // Create object URL for the blob
+      const url = window.URL.createObjectURL(blob);
+      
+      // Create temporary anchor element
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      
+      // Generate filename based on platform and prompt
+      const filename = `${platform.toLowerCase()}-${prompt.substring(0, 20).replace(/[^a-z0-9]/gi, '-').toLowerCase()}.mp4`;
+      a.download = filename;
+      
+      // Append to body, click to trigger download, then clean up
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      // Dismiss loading toast and show success
+      toast.dismiss(downloadingToast);
+      toast.success(`${platform} video downloaded successfully!`);
+    } catch (error: any) {
+      console.error("Download error:", error);
+      toast.error(`Failed to download video: ${error.message}`);
+    }
+  };
+
   return (
     <Card className="w-full animate-fadeIn">
       <CardHeader>
@@ -281,15 +325,27 @@ const VideoGenerator = () => {
               {scheduledPosts.map((post) => (
                 <div
                   key={post.id}
-                  className="p-2 bg-secondary rounded-md text-sm flex justify-between items-center"
+                  className="p-3 bg-secondary rounded-md text-sm flex justify-between items-center"
                 >
                   <div className="flex flex-col">
-                    <span>{post.prompt}</span>
+                    <span className="font-medium">{post.prompt}</span>
                     <span className="text-xs text-muted-foreground">{post.platform}</span>
                   </div>
-                  <span className="text-xs text-muted-foreground">
-                    {formatDateForDisplay(post.scheduledFor)}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      {formatDateForDisplay(post.scheduledFor)}
+                    </span>
+                    {post.videoUrl && (
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        onClick={() => handleDownloadVideo(post.videoUrl!, post.platform, post.prompt)}
+                        title="Download Video"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
