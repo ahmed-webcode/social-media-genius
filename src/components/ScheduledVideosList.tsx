@@ -1,4 +1,3 @@
-
 import { useCallback, useRef, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, Play } from "lucide-react";
@@ -100,15 +99,19 @@ const ScheduledVideosList = ({ scheduledPosts }: ScheduledVideosListProps) => {
       // Get metadata (when available) or generate scene content
       const metadata = post.metadata || {
         title: post.prompt,
-        scenes: Array(5).fill(0).map((_, i) => ({
-          sceneId: i + 1,
-          duration: 3,
-          script: i === 0 ? `Intro: ${post.prompt}` : i === 4 ? `Thanks for watching!` : `Key point #${i} about ${post.prompt}`,
-          visualDescription: `Scene ${i + 1} for ${post.prompt}`,
-          transition: 'fade'
-        })),
-        totalDuration: 15,
-        style: post.platform.toLowerCase()
+        content: {
+          scenes: Array(5).fill(0).map((_, i) => ({
+            sceneId: i + 1,
+            duration: 3,
+            script: i === 0 ? `Intro: ${post.prompt}` : i === 4 ? `Thanks for watching!` : `Key point #${i} about ${post.prompt}`,
+            visualDescription: `Scene ${i + 1} for ${post.prompt}`,
+            transition: 'fade'
+          })),
+          totalDuration: 15,
+          musicTrack: 'default',
+          style: post.platform.toLowerCase(),
+          callToAction: 'Follow for more!'
+        }
       };
       
       // Create a MediaStream from canvas
@@ -140,10 +143,10 @@ const ScheduledVideosList = ({ scheduledPosts }: ScheduledVideosListProps) => {
         // Animation frames counter and timing
         let frameCount = 0;
         const fps = 30;
-        const totalFrames = metadata.totalDuration * fps;
+        const totalFrames = metadata.content.totalDuration * fps;
         let currentScene = 0;
         let sceneStartFrame = 0;
-        let sceneDuration = metadata.scenes[0].duration * fps;
+        let sceneDuration = metadata.content.scenes[0].duration * fps;
         
         // Create animation frames
         const animate = () => {
@@ -151,14 +154,14 @@ const ScheduledVideosList = ({ scheduledPosts }: ScheduledVideosListProps) => {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
           
           // Calculate current position in animation
-          const currentSceneObj = metadata.scenes[currentScene];
+          const currentSceneObj = metadata.content.scenes[currentScene];
           const sceneProgress = (frameCount - sceneStartFrame) / sceneDuration;
           
           // Check if we need to move to next scene
-          if (frameCount - sceneStartFrame >= sceneDuration && currentScene < metadata.scenes.length - 1) {
+          if (frameCount - sceneStartFrame >= sceneDuration && currentScene < metadata.content.scenes.length - 1) {
             currentScene++;
             sceneStartFrame = frameCount;
-            sceneDuration = metadata.scenes[currentScene].duration * fps;
+            sceneDuration = metadata.content.scenes[currentScene].duration * fps;
           }
           
           // Draw background based on platform and scene
