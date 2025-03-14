@@ -70,14 +70,17 @@ serve(async (req) => {
     // 4. Upload to appropriate platforms via their APIs
 
     // For now, we're creating a simulation of video generation
-    // by returning mock URLs after a short delay to simulate processing
+    // with more realistic video URLs
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Generate unique timestamps for the videos
     const timestamp = Date.now();
     const videoId = timestamp.toString();
-    const videoUrl = `https://example.com/videos/${platform.toLowerCase()}-${videoId}.mp4`;
-    const shortsUrl = generateShorts ? `https://example.com/shorts/${platform.toLowerCase()}-${videoId}.mp4` : null;
+    
+    // Create more realistic video URLs with mp4 extension
+    const platformCode = platform.toLowerCase().substring(0, 3);
+    const videoUrl = `https://api.videoplatform.example/videos/${platformCode}_${videoId}.mp4`;
+    const shortsUrl = generateShorts ? `https://api.videoplatform.example/shorts/${platformCode}_${videoId}_short.mp4` : null;
 
     console.log(`Video generation completed.`);
     console.log(`Video URL: ${videoUrl}`);
