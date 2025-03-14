@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { Textarea } from "@/components/ui/textarea";
 
 // GMT+3 timezone offset in milliseconds
 const GMT_PLUS_3_OFFSET = 3 * 60 * 60 * 1000;
@@ -36,6 +37,11 @@ const VideoForm = ({ connectedPlatforms, onSuccess }: VideoFormProps) => {
   const [generateShorts, setGenerateShorts] = useState(true);
 
   const handleGenerate = async () => {
+    if (prompt.length < 10) {
+      toast.warning("Please enter a more detailed prompt for better results");
+      return;
+    }
+    
     setLoading(true);
     
     try {
@@ -54,7 +60,7 @@ const VideoForm = ({ connectedPlatforms, onSuccess }: VideoFormProps) => {
       }
 
       // Show initial toast
-      const generatingToast = toast.loading("Generating videos...");
+      const generatingToast = toast.loading("Generating high-quality videos...");
 
       // Generate videos for each selected platform
       const generatedVideos = await Promise.all(
@@ -75,7 +81,8 @@ const VideoForm = ({ connectedPlatforms, onSuccess }: VideoFormProps) => {
           return {
             platform,
             videoUrl: data.videoUrl,
-            shortsUrl: data.shortsUrl
+            shortsUrl: data.shortsUrl,
+            metadata: data.metadata
           };
         })
       );
@@ -92,8 +99,10 @@ const VideoForm = ({ connectedPlatforms, onSuccess }: VideoFormProps) => {
         scheduled_for: adjustedScheduledTime.toISOString(),
         status: 'pending',
         platform: video.platform,
-        hashtags: [],
+        hashtags: video.metadata?.tags || [],
         video_url: video.videoUrl,
+        shorts_url: video.shortsUrl,
+        metadata: video.metadata,
         user_id: user.id
       }));
 
@@ -126,13 +135,16 @@ const VideoForm = ({ connectedPlatforms, onSuccess }: VideoFormProps) => {
     <div className="space-y-6">
       <div className="space-y-2">
         <Label htmlFor="prompt" className="text-lg font-medium">Write Your Video Concept</Label>
-        <Input
+        <Textarea
           id="prompt"
-          placeholder="Enter an amazing video idea (e.g., '5 mind-blowing AI tools that will change your life')"
+          placeholder="Enter a detailed video idea (e.g., 'Create a tutorial showing 5 mind-blowing AI tools that will boost productivity for remote workers. Include demos of each tool and explain their key benefits.')"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          className="h-20 px-4 py-2 text-lg"
+          className="h-32 px-4 py-2 text-lg resize-none"
         />
+        <p className="text-xs text-muted-foreground">
+          For best results, be specific and detailed in your prompt (10-150 characters). Include what you want to show, key points, and the desired emotional tone.
+        </p>
       </div>
       
       <div className="space-y-2">
@@ -143,7 +155,7 @@ const VideoForm = ({ connectedPlatforms, onSuccess }: VideoFormProps) => {
             return (
               <div 
                 key={platform} 
-                className={`flex items-center space-x-2 p-2 border rounded-md hover:bg-secondary/50 transition-colors ${!isConnected ? 'border-orange-400' : ''}`}
+                className={`flex items-center space-x-2 p-3 border rounded-md hover:bg-secondary/50 transition-colors ${!isConnected ? 'border-orange-400' : ''}`}
               >
                 <Checkbox
                   id={platform}
@@ -173,13 +185,18 @@ const VideoForm = ({ connectedPlatforms, onSuccess }: VideoFormProps) => {
         )}
       </div>
 
-      <div className="flex items-center space-x-2 p-2 border rounded-md hover:bg-secondary/50 transition-colors">
+      <div className="flex items-center space-x-2 p-3 border rounded-md hover:bg-secondary/50 transition-colors">
         <Checkbox
           id="generateShorts"
           checked={generateShorts}
           onCheckedChange={(checked) => setGenerateShorts(!!checked)}
         />
-        <Label htmlFor="generateShorts" className="text-base">Generate Shorts Version</Label>
+        <div className="flex flex-col">
+          <Label htmlFor="generateShorts" className="text-base">Generate Shorts Version</Label>
+          <span className="text-xs text-muted-foreground">
+            Creates a shorter 8-18 second version optimized for short-form content
+          </span>
+        </div>
       </div>
 
       <div className="space-y-2">
@@ -198,7 +215,7 @@ const VideoForm = ({ connectedPlatforms, onSuccess }: VideoFormProps) => {
         disabled={loading || !prompt || selectedPlatforms.length === 0}
         className="w-full py-6 text-lg font-semibold transition-all duration-300 hover:scale-[1.02]"
       >
-        {loading ? "Generating..." : "Generate & Schedule Videos"}
+        {loading ? "Generating High-Quality Videos..." : "Generate & Schedule Videos"}
       </Button>
     </div>
   );

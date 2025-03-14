@@ -63,24 +63,57 @@ serve(async (req) => {
       console.log('Snapchat account found, access token available');
     }
 
-    // In a real implementation, this would:
-    // 1. Use OpenAI/other AI to generate a video script based on prompt
-    // 2. Use a video generation API to create the video
-    // 3. If generateShorts is true, create a shorter version
-    // 4. Upload to appropriate platforms via their APIs
+    // In a real implementation, we would use AI to generate a video
+    // For now, we're creating a more realistic simulation with better video URLs
 
-    // For now, we're creating a simulation of video generation
-    // with more realistic video URLs
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    // Generate unique timestamps for the videos
-    const timestamp = Date.now();
-    const videoId = timestamp.toString();
+    // Generate content for the different platforms
+    const videoContent = generateVideoContent(prompt, platform);
     
-    // Create more realistic video URLs with mp4 extension
+    // Simulate processing time for video generation (2-4 seconds)
+    const processingTime = 2000 + Math.floor(Math.random() * 2000);
+    await new Promise(resolve => setTimeout(resolve, processingTime));
+
+    // Generate unique IDs for videos
+    const timestamp = Date.now();
+    const videoId = `${timestamp}_${Math.floor(Math.random() * 10000)}`;
+    
+    // Create more realistic video URLs with real content descriptors in the path
     const platformCode = platform.toLowerCase().substring(0, 3);
-    const videoUrl = `https://api.videoplatform.example/videos/${platformCode}_${videoId}.mp4`;
-    const shortsUrl = generateShorts ? `https://api.videoplatform.example/shorts/${platformCode}_${videoId}_short.mp4` : null;
+    const promptSlug = prompt.toLowerCase().replace(/[^a-z0-9]/g, '-').substring(0, 30);
+    
+    // Duration between 10-30 seconds
+    const mainDuration = Math.floor(Math.random() * 20) + 10; // 10-30 seconds
+    const shortsDuration = Math.floor(Math.random() * 10) + 8; // 8-18 seconds
+    
+    // Resolution based on platform
+    let resolution = "1080p";
+    if (platform === 'TikTok' || platform === 'Instagram') {
+      resolution = "portrait-1080p";
+    } else if (platform === 'YouTube') {
+      resolution = "landscape-1080p";
+    }
+    
+    // More realistic video URL with content description
+    const videoUrl = `https://api.videoplatform.example/${platformCode}/content/${resolution}/${promptSlug}/${videoId}.mp4?duration=${mainDuration}`;
+    
+    // Shorts URL if requested
+    const shortsUrl = generateShorts 
+      ? `https://api.videoplatform.example/${platformCode}/shorts/${resolution}/${promptSlug}/${videoId}_short.mp4?duration=${shortsDuration}` 
+      : null;
+
+    // Detailed content metadata
+    const videoMetadata = {
+      title: generateVideoTitle(prompt, platform),
+      description: generateVideoDescription(prompt, platform),
+      tags: generateHashtags(prompt, platform),
+      thumbnailUrl: `https://api.videoplatform.example/thumbnails/${platformCode}_${videoId}.jpg`,
+      duration: mainDuration,
+      shortsDuration: shortsUrl ? shortsDuration : null,
+      resolution: resolution,
+      codec: "h264",
+      format: "mp4",
+      content: videoContent
+    };
 
     console.log(`Video generation completed.`);
     console.log(`Video URL: ${videoUrl}`);
@@ -92,10 +125,7 @@ serve(async (req) => {
     // This is a simulated implementation
     if (platform === 'Snapchat') {
       console.log('Simulating Snapchat posting process...');
-      // In a real implementation, we would:
-      // 1. Get the Snapchat access token from the database
-      // 2. Use the Snapchat API to upload and schedule the post
-      // 3. Store the Snapchat post ID for tracking
+      // In a real implementation, we would use the Snapchat API
     }
 
     return new Response(
@@ -103,6 +133,7 @@ serve(async (req) => {
         status: 'success',
         videoUrl,
         shortsUrl,
+        metadata: videoMetadata,
         message: 'Video generated successfully'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -121,3 +152,140 @@ serve(async (req) => {
     );
   }
 });
+
+// Helper function to generate video content based on prompt and platform
+function generateVideoContent(prompt: string, platform: string) {
+  const scenes = [];
+  
+  // Generate 5-8 scenes for the video
+  const numScenes = Math.floor(Math.random() * 4) + 5;
+  
+  for (let i = 0; i < numScenes; i++) {
+    const scene = {
+      sceneId: i + 1,
+      duration: Math.floor(Math.random() * 5) + 2, // 2-7 seconds per scene
+      script: generateSceneScript(prompt, i, numScenes),
+      visualDescription: generateVisualDescription(prompt, i, platform),
+      audioTrack: i === 0 ? "intro_upbeat" : i === numScenes - 1 ? "outro_motivational" : "background_smooth",
+      transition: i < numScenes - 1 ? ["fade", "wipe", "slide", "zoom"][Math.floor(Math.random() * 4)] : "fade"
+    };
+    scenes.push(scene);
+  }
+  
+  return {
+    scenes,
+    totalDuration: scenes.reduce((total, scene) => total + scene.duration, 0),
+    musicTrack: getMusicTrackForPlatform(platform),
+    style: getStyleForPlatform(platform),
+    callToAction: platform === "YouTube" ? "Subscribe for more content!" : "Follow for more!"
+  };
+}
+
+// Helper function to generate a scene script
+function generateSceneScript(prompt: string, sceneIndex: number, totalScenes: number) {
+  const promptWords = prompt.split(" ");
+  const keywords = promptWords.filter(word => word.length > 3).slice(0, 3);
+  
+  if (sceneIndex === 0) {
+    return `Introducing: ${prompt}`;
+  } else if (sceneIndex === totalScenes - 1) {
+    return `That's all about ${prompt}! Thanks for watching!`;
+  } else {
+    const points = [
+      `The key benefit of ${keywords[0] || prompt} is amazing results.`,
+      `You won't believe how ${keywords[1] || 'effective'} this can be!`,
+      `Here's why ${keywords[0] || prompt} is trending right now.`,
+      `Let me show you how ${keywords[1] || 'this works'} in real life.`,
+      `The secret to mastering ${keywords[2] || prompt} is consistency.`
+    ];
+    return points[sceneIndex % points.length];
+  }
+}
+
+// Helper function to generate visual descriptions
+function generateVisualDescription(prompt: string, sceneIndex: number, platform: string) {
+  const visualStyles = [
+    `Close-up shot of ${prompt} with vibrant colors`,
+    `Person demonstrating ${prompt} with clear gestures`,
+    `Split-screen comparison showing before and after ${prompt}`,
+    `Animation explaining the concept of ${prompt}`,
+    `Expert talking directly to camera about ${prompt}`,
+    `Screen recording showing ${prompt} in action`,
+    `Outdoor shot displaying real-world application of ${prompt}`
+  ];
+  
+  return visualStyles[sceneIndex % visualStyles.length];
+}
+
+// Helper function to get platform-specific music tracks
+function getMusicTrackForPlatform(platform: string) {
+  const tracks = {
+    "YouTube": "educational_upbeat",
+    "TikTok": "viral_energetic",
+    "Instagram": "modern_lifestyle",
+    "Snapchat": "young_trendy"
+  };
+  
+  return tracks[platform] || "standard_background";
+}
+
+// Helper function to get platform-specific style
+function getStyleForPlatform(platform: string) {
+  const styles = {
+    "YouTube": "professional_tutorial",
+    "TikTok": "fast_paced_entertaining",
+    "Instagram": "visually_appealing_lifestyle",
+    "Snapchat": "casual_authentic"
+  };
+  
+  return styles[platform] || "standard";
+}
+
+// Helper function to generate video titles
+function generateVideoTitle(prompt: string, platform: string) {
+  const titleTemplates = [
+    `${prompt} - Everything You Need To Know`,
+    `How ${prompt} Is Changing Everything`,
+    `The Ultimate Guide to ${prompt}`,
+    `${prompt} in Under 60 Seconds`,
+    `Why Everyone Is Talking About ${prompt}`
+  ];
+  
+  const randomIndex = Math.floor(Math.random() * titleTemplates.length);
+  return titleTemplates[randomIndex];
+}
+
+// Helper function to generate video descriptions
+function generateVideoDescription(prompt: string, platform: string) {
+  const descriptionTemplates = [
+    `In this video, we explore everything about ${prompt} and how it can transform your experience.`,
+    `Discover the secrets behind ${prompt} that experts don't want you to know!`,
+    `A comprehensive look at ${prompt} with tips and tricks for beginners and experts alike.`,
+    `${prompt} explained in simple terms with real-world examples and applications.`,
+    `Join us as we dive deep into ${prompt} and reveal the strategies that actually work.`
+  ];
+  
+  const randomIndex = Math.floor(Math.random() * descriptionTemplates.length);
+  return descriptionTemplates[randomIndex];
+}
+
+// Helper function to generate hashtags
+function generateHashtags(prompt: string, platform: string) {
+  const baseHashtags = ["viral", "trending", "content", "creator"];
+  const promptWords = prompt.toLowerCase().split(" ").filter(word => word.length > 3);
+  
+  // Add platform-specific hashtags
+  const platformTags = {
+    "YouTube": ["youtuber", "subscribe", "youtubechannel"],
+    "TikTok": ["fyp", "foryoupage", "tiktoktrend"],
+    "Instagram": ["insta", "instagramreels", "instadaily"],
+    "Snapchat": ["snapchat", "snapchatter", "snapcode"]
+  };
+  
+  // Combine all hashtags and take a random selection
+  const allTags = [...baseHashtags, ...promptWords, ...(platformTags[platform] || [])];
+  const shuffled = allTags.sort(() => 0.5 - Math.random());
+  
+  // Return 5-8 hashtags
+  return shuffled.slice(0, Math.floor(Math.random() * 4) + 5).map(tag => `#${tag}`);
+}
