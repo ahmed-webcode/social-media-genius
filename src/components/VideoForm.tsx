@@ -1,22 +1,15 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Textarea } from "@/components/ui/textarea";
+import PromptInput from "./PromptInput";
+import PlatformSelector from "./PlatformSelector";
+import ShortsOption from "./ShortsOption";
+import ScheduleInput from "./ScheduleInput";
 
 // GMT+3 timezone offset in milliseconds
 const GMT_PLUS_3_OFFSET = 3 * 60 * 60 * 1000;
-
-const PLATFORMS = {
-  YOUTUBE: 'YouTube',
-  TIKTOK: 'TikTok',
-  INSTAGRAM: 'Instagram',
-  SNAPCHAT: 'Snapchat'
-} as const;
 
 type VideoFormProps = {
   connectedPlatforms: string[];
@@ -133,82 +126,26 @@ const VideoForm = ({ connectedPlatforms, onSuccess }: VideoFormProps) => {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
-        <Label htmlFor="prompt" className="text-lg font-medium">Write Your Video Concept</Label>
-        <Textarea
-          id="prompt"
-          placeholder="Enter a detailed video idea (e.g., 'Create a tutorial showing 5 mind-blowing AI tools that will boost productivity for remote workers. Include demos of each tool and explain their key benefits.')"
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          className="h-32 px-4 py-2 text-lg resize-none"
-        />
-        <p className="text-xs text-muted-foreground">
-          For best results, be specific and detailed in your prompt (10-150 characters). Include what you want to show, key points, and the desired emotional tone.
-        </p>
-      </div>
+      <PromptInput 
+        prompt={prompt}
+        onChange={setPrompt}
+      />
       
-      <div className="space-y-2">
-        <Label className="text-lg font-medium">Select Platforms</Label>
-        <div className="grid grid-cols-2 gap-4">
-          {Object.values(PLATFORMS).map((platform) => {
-            const isConnected = platform !== 'Snapchat' || connectedPlatforms.includes(platform);
-            return (
-              <div 
-                key={platform} 
-                className={`flex items-center space-x-2 p-3 border rounded-md hover:bg-secondary/50 transition-colors ${!isConnected ? 'border-orange-400' : ''}`}
-              >
-                <Checkbox
-                  id={platform}
-                  checked={selectedPlatforms.includes(platform)}
-                  onCheckedChange={(checked) => {
-                    setSelectedPlatforms(prev => 
-                      checked 
-                        ? [...prev, platform]
-                        : prev.filter(p => p !== platform)
-                    );
-                  }}
-                />
-                <div className="flex flex-col">
-                  <Label htmlFor={platform} className="text-base">{platform}</Label>
-                  {!isConnected && (
-                    <span className="text-xs text-orange-500">Not connected</span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        {!connectedPlatforms.includes('Snapchat') && (
-          <p className="text-xs text-orange-500 mt-1">
-            To post to Snapchat, please connect your account in the "Connected Accounts" section first.
-          </p>
-        )}
-      </div>
+      <PlatformSelector
+        connectedPlatforms={connectedPlatforms}
+        selectedPlatforms={selectedPlatforms}
+        onPlatformChange={setSelectedPlatforms}
+      />
 
-      <div className="flex items-center space-x-2 p-3 border rounded-md hover:bg-secondary/50 transition-colors">
-        <Checkbox
-          id="generateShorts"
-          checked={generateShorts}
-          onCheckedChange={(checked) => setGenerateShorts(!!checked)}
-        />
-        <div className="flex flex-col">
-          <Label htmlFor="generateShorts" className="text-base">Generate Shorts Version</Label>
-          <span className="text-xs text-muted-foreground">
-            Creates a shorter 8-18 second version optimized for short-form content
-          </span>
-        </div>
-      </div>
+      <ShortsOption
+        generateShorts={generateShorts}
+        onToggle={setGenerateShorts}
+      />
 
-      <div className="space-y-2">
-        <Label htmlFor="scheduledTime" className="text-lg font-medium">Schedule Time (GMT+3)</Label>
-        <Input
-          id="scheduledTime"
-          type="datetime-local"
-          value={scheduledTime.toISOString().slice(0, 16)}
-          onChange={(e) => setScheduledTime(new Date(e.target.value))}
-          className="text-base"
-        />
-      </div>
+      <ScheduleInput
+        scheduledTime={scheduledTime}
+        onChange={setScheduledTime}
+      />
 
       <Button 
         onClick={handleGenerate} 
