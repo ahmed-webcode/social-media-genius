@@ -85,7 +85,12 @@ const VideoGenerator = () => {
           onSuccess={refetch}
         />
         
-        {scheduledPosts && <ScheduledVideosList scheduledPosts={scheduledPosts} />}
+        {scheduledPosts && 
+          <ScheduledVideosList 
+            scheduledPosts={scheduledPosts} 
+            onPostDeleted={refetch}
+          />
+        }
       </CardContent>
     </Card>
   );

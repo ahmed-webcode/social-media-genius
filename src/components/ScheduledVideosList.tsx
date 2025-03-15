@@ -1,6 +1,7 @@
 
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import type { ScheduledPost } from "@/lib/types";
 import ScheduledPostItem from "./ScheduledPostItem";
 import VideoPreviewDialog from "./VideoPreviewDialog";
@@ -8,9 +9,10 @@ import { generateRealVideo } from "@/utils/videoUtils";
 
 type ScheduledVideosListProps = {
   scheduledPosts: ScheduledPost[];
+  onPostDeleted?: () => void;
 };
 
-const ScheduledVideosList = ({ scheduledPosts }: ScheduledVideosListProps) => {
+const ScheduledVideosList = ({ scheduledPosts, onPostDeleted }: ScheduledVideosListProps) => {
   const [previewVideo, setPreviewVideo] = useState<{
     url: string;
     title: string;
@@ -82,6 +84,29 @@ const ScheduledVideosList = ({ scheduledPosts }: ScheduledVideosListProps) => {
     }
   }, []);
 
+  // Function to handle post deletion
+  const handleDeletePost = useCallback(async (post: ScheduledPost) => {
+    try {
+      const deletingToast = toast.loading(`Deleting ${post.platform} post...`);
+      
+      const { error } = await supabase
+        .from('scheduled_posts')
+        .delete()
+        .eq('id', post.id);
+      
+      if (error) throw error;
+      
+      toast.dismiss(deletingToast);
+      toast.success(`Post deleted successfully`);
+      
+      // Call the onPostDeleted callback to refresh the list
+      if (onPostDeleted) onPostDeleted();
+    } catch (error: any) {
+      console.error("Delete error:", error);
+      toast.error(`Failed to delete post: ${error.message}`);
+    }
+  }, [onPostDeleted]);
+
   if (!scheduledPosts || scheduledPosts.length === 0) {
     return null;
   }
@@ -96,6 +121,7 @@ const ScheduledVideosList = ({ scheduledPosts }: ScheduledVideosListProps) => {
             post={post}
             onPreview={handlePreviewVideo}
             onDownload={handleDownloadVideo}
+            onDelete={handleDeletePost}
           />
         ))}
       </div>

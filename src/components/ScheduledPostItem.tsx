@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { Download, Play } from "lucide-react";
+import { Download, Play, Trash2 } from "lucide-react";
 import type { ScheduledPost } from "@/lib/types";
 import { formatDateForDisplay } from "@/utils/videoUtils";
 
@@ -8,9 +8,10 @@ type ScheduledPostItemProps = {
   post: ScheduledPost;
   onPreview: (post: ScheduledPost) => void;
   onDownload: (post: ScheduledPost) => void;
+  onDelete: (post: ScheduledPost) => void;
 };
 
-const ScheduledPostItem = ({ post, onPreview, onDownload }: ScheduledPostItemProps) => {
+const ScheduledPostItem = ({ post, onPreview, onDownload, onDelete }: ScheduledPostItemProps) => {
   return (
     <div
       className="p-3 bg-secondary rounded-md text-sm flex justify-between items-center"
@@ -40,6 +41,15 @@ const ScheduledPostItem = ({ post, onPreview, onDownload }: ScheduledPostItemPro
           className="h-8 w-8 p-0"
         >
           <Download className="h-4 w-4" />
+        </Button>
+        <Button 
+          size="sm" 
+          variant="ghost" 
+          onClick={() => onDelete(post)}
+          title="Delete Post"
+          className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+        >
+          <Trash2 className="h-4 w-4" />
         </Button>
       </div>
     </div>
