@@ -43,6 +43,7 @@ export type Database = {
           platform: string
           prompt: string
           scheduled_for: string
+          shorts_url: string | null
           status: string
           user_id: string | null
           video_url: string | null
@@ -56,6 +57,7 @@ export type Database = {
           platform: string
           prompt: string
           scheduled_for: string
+          shorts_url?: string | null
           status: string
           user_id?: string | null
           video_url?: string | null
@@ -69,6 +71,7 @@ export type Database = {
           platform?: string
           prompt?: string
           scheduled_for?: string
+          shorts_url?: string | null
           status?: string
           user_id?: string | null
           video_url?: string | null
