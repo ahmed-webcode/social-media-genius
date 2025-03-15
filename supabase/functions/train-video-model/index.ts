@@ -31,7 +31,7 @@ export async function handleRequest(req: Request) {
 
   try {
     // Get request body
-    const { trainingData, videoType, platform } = await req.json()
+    const { trainingData, videoType, platform, referenceVideos = [] } = await req.json()
 
     // Get API key from environment variables
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
@@ -52,11 +52,27 @@ export async function handleRequest(req: Request) {
       videoType,
       platform,
       dataLength: trainingData ? trainingData.length : 0,
+      referenceVideosCount: referenceVideos.length,
+      referenceVideoIds: referenceVideos,
     })
 
-    // Mock training process 
-    // In a real implementation, this would send the data to OpenAI for fine-tuning
-    // or implement your own model training logic
+    // Mock video analysis of reference videos
+    // In a real implementation, this would analyze the YouTube videos or use their metadata
+    const analyzedReferenceVideos = referenceVideos.map((videoId: string) => {
+      return {
+        videoId,
+        features: {
+          visualStyle: "high-contrast",
+          cameraMovements: ["pan", "zoom", "tracking"],
+          transitions: ["fade", "wipe", "dissolve"],
+          colorGrading: "vibrant",
+          textOverlays: true,
+          musicType: "upbeat",
+          narrativeStyle: "direct-engagement",
+          pacing: "fast",
+        }
+      }
+    })
 
     // Connect to Supabase to store training status
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
@@ -64,7 +80,7 @@ export async function handleRequest(req: Request) {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
     
-    // Log training event (for demonstration purposes)
+    // Log training event with reference videos included
     const { error: logError } = await supabase
       .from('training_logs')
       .insert({
@@ -72,7 +88,24 @@ export async function handleRequest(req: Request) {
         video_type: videoType,
         samples_count: trainingData?.length || 0,
         status: 'completed',
-        metadata: { trainingCompleted: new Date().toISOString() }
+        metadata: { 
+          trainingCompleted: new Date().toISOString(),
+          referenceVideos: analyzedReferenceVideos,
+          styleFeatures: {
+            visualStyle: "high-contrast",
+            colorGrading: "vibrant",
+            cameraMovements: ["pan", "zoom", "tracking"],
+            transitions: ["fade", "wipe", "dissolve"],
+            textOverlays: true,
+            audioFeatures: {
+              musicType: "upbeat",
+              soundEffects: true,
+              voiceOver: platform === "YouTube"
+            },
+            pacing: "fast",
+            narrativeStyle: "direct-engagement"
+          }
+        }
       })
       .select()
     
@@ -80,7 +113,7 @@ export async function handleRequest(req: Request) {
       console.error('Error logging training event:', logError)
     }
 
-    // Return success response
+    // Return success response with reference video analysis included
     return new Response(
       JSON.stringify({
         status: 'success',
@@ -89,6 +122,21 @@ export async function handleRequest(req: Request) {
           platform,
           videoType,
           samplesProcessed: trainingData?.length || 0,
+          referenceVideosAnalyzed: analyzedReferenceVideos.length,
+          styleFeatures: {
+            visualStyle: "high-contrast",
+            colorGrading: "vibrant",
+            cameraMovements: ["pan", "zoom", "tracking"],
+            transitions: ["fade", "wipe", "dissolve"],
+            textOverlays: true,
+            audioFeatures: {
+              musicType: "upbeat",
+              soundEffects: true,
+              voiceOver: platform === "YouTube"
+            },
+            pacing: "fast",
+            narrativeStyle: "direct-engagement"
+          },
           trainingCompleted: new Date().toISOString(),
         },
       }),
