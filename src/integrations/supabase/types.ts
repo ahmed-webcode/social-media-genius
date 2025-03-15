@@ -38,6 +38,7 @@ export type Database = {
           created_at: string | null
           hashtags: string[] | null
           id: string
+          metadata: Json | null
           performance: Json | null
           platform: string
           prompt: string
@@ -50,6 +51,7 @@ export type Database = {
           created_at?: string | null
           hashtags?: string[] | null
           id?: string
+          metadata?: Json | null
           performance?: Json | null
           platform: string
           prompt: string
@@ -62,6 +64,7 @@ export type Database = {
           created_at?: string | null
           hashtags?: string[] | null
           id?: string
+          metadata?: Json | null
           performance?: Json | null
           platform?: string
           prompt?: string

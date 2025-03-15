@@ -56,8 +56,10 @@ const VideoGenerator = () => {
         scheduledFor: new Date(post.scheduled_for),
         status: post.status,
         videoUrl: post.video_url,
+        shortsUrl: post.shorts_url,
         platform: post.platform,
-        hashtags: post.hashtags,
+        hashtags: post.hashtags || [],
+        metadata: post.metadata || {},
         performance: post.performance
       })) as ScheduledPost[];
     },
