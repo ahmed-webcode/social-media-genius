@@ -80,57 +80,68 @@ async function generateEnhancedVideoContent(prompt, platform) {
   // Create platform-specific formatting
   const platformGuide = getPlatformGuide(platform);
   
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${openAIApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o',
-      messages: [{
-        role: 'system',
-        content: `You are an expert video director specializing in highly viral ${platform} content. You create detailed, professional storyboards and shot lists that result in millions of views.`
-      }, {
-        role: 'user',
-        content: `Create a detailed, production-ready storyboard for this video concept: "${prompt}"
-        
-        ${platformGuide}
-        
-        Structure your response as a JSON object with:
-        1. scenes: Array of 5-7 scenes, each containing:
-           - sceneId (number)
-           - duration (in seconds)
-           - script (exact spoken/text content)
-           - visualDescription (detailed shot description)
-           - transition (specific transition effect)
-           - cameraMovement (specific camera technique)
-           - textOverlay (text that appears on screen)
-           - soundDesign (specific audio elements)
-        2. totalDuration (sum of all scene durations)
-        3. musicTrack (specific music style description)
-        4. style (visual aesthetic description)
-        5. editingPace (description of editing rhythm)
-        6. callToAction (specific viewer prompt at the end)
-        
-        The video should follow a proven viral structure:
-        - Start with a scroll-stopping hook (2-3 seconds)
-        - Deliver key points with visual impact (10-15 seconds)
-        - End with strong call-to-action (3-5 seconds)
-        
-        Be extremely specific about visual elements, text animations, and transitions.`
-      }],
-      temperature: 0.7,
-      response_format: { type: "json_object" }
-    }),
-  });
-
-  const data = await response.json();
-  
   try {
-    return JSON.parse(data.choices[0].message.content);
-  } catch (e) {
-    console.error('Failed to parse video content JSON:', e);
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [{
+          role: 'system',
+          content: `You are an expert video director specializing in highly viral ${platform} content. You create detailed, professional storyboards and shot lists that result in millions of views.`
+        }, {
+          role: 'user',
+          content: `Create a detailed, production-ready storyboard for this video concept: "${prompt}"
+          
+          ${platformGuide}
+          
+          Structure your response as a JSON object with:
+          1. scenes: Array of 5-7 scenes, each containing:
+             - sceneId (number)
+             - duration (in seconds)
+             - script (exact spoken/text content)
+             - visualDescription (detailed shot description)
+             - transition (specific transition effect)
+             - cameraMovement (specific camera technique)
+             - textOverlay (text that appears on screen)
+             - soundDesign (specific audio elements)
+          2. totalDuration (sum of all scene durations)
+          3. musicTrack (specific music style description)
+          4. style (visual aesthetic description)
+          5. editingPace (description of editing rhythm)
+          6. callToAction (specific viewer prompt at the end)
+          
+          The video should follow a proven viral structure:
+          - Start with a scroll-stopping hook (2-3 seconds)
+          - Deliver key points with visual impact (10-15 seconds)
+          - End with strong call-to-action (3-5 seconds)
+          
+          Be extremely specific about visual elements, text animations, and transitions.`
+        }],
+        temperature: 0.7,
+        response_format: { type: "json_object" }
+      }),
+    });
+
+    const data = await response.json();
+    
+    // Check if we have valid content
+    if (!data || !data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
+      console.error('No valid content returned from OpenAI:', data);
+      return createFallbackContent(prompt, platform);
+    }
+    
+    try {
+      return JSON.parse(data.choices[0].message.content);
+    } catch (e) {
+      console.error('Failed to parse video content JSON:', e);
+      return createFallbackContent(prompt, platform);
+    }
+  } catch (error) {
+    console.error('Error generating video content:', error);
     return createFallbackContent(prompt, platform);
   }
 }
@@ -254,96 +265,118 @@ function createFallbackContent(prompt, platform) {
 async function generateVisualStyleGuide(prompt, platform, videoContent) {
   console.log(`Generating visual style guide for ${platform}`);
   
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${openAIApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o',
-      messages: [{
-        role: 'system',
-        content: `You are an expert video editor and colorist specializing in viral ${platform} content.`
-      }, {
-        role: 'user',
-        content: `Create a detailed visual style guide for this video: "${prompt}"
-        
-        Based on this storyboard: ${JSON.stringify(videoContent)}
-        
-        Provide specific details about:
-        1. Color palette and grading (specific LUT suggestions)
-        2. Text animations and typography (fonts, sizes, animations)
-        3. Visual effects and filters
-        4. Transition specifics (timing, style, easing)
-        5. Composition guidelines (rule of thirds, leading lines, etc.)
-        
-        Make this guide technically precise for a video editor to implement.`
-      }],
-      temperature: 0.6,
-    }),
-  });
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [{
+          role: 'system',
+          content: `You are an expert video editor and colorist specializing in viral ${platform} content.`
+        }, {
+          role: 'user',
+          content: `Create a detailed visual style guide for this video: "${prompt}"
+          
+          Based on this storyboard: ${JSON.stringify(videoContent)}
+          
+          Provide specific details about:
+          1. Color palette and grading (specific LUT suggestions)
+          2. Text animations and typography (fonts, sizes, animations)
+          3. Visual effects and filters
+          4. Transition specifics (timing, style, easing)
+          5. Composition guidelines (rule of thirds, leading lines, etc.)
+          
+          Make this guide technically precise for a video editor to implement.`
+        }],
+        temperature: 0.6,
+      }),
+    });
 
-  const data = await response.json();
-  return data.choices[0].message.content;
+    const data = await response.json();
+    if (!data || !data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error('No valid style guide returned from OpenAI:', data);
+      return "Default visual style with modern color grading and dynamic transitions.";
+    }
+    return data.choices[0].message.content;
+  } catch (error) {
+    console.error('Error generating visual style guide:', error);
+    return "Default visual style with modern color grading and dynamic transitions.";
+  }
 }
 
 async function generateVideoMetadata(prompt, platform, videoContent) {
   console.log(`Generating metadata for ${platform}`);
   
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${openAIApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o',
-      messages: [{
-        role: 'system',
-        content: `You are an expert in ${platform} optimization and content metadata.`
-      }, {
-        role: 'user',
-        content: `Create optimized metadata for this ${platform} video: "${prompt}"
-        
-        Based on this storyboard: ${JSON.stringify(videoContent)}
-        
-        Return a JSON object with:
-        1. title (attention-grabbing, optimized for CTR)
-        2. description (compelling with keywords)
-        3. tags (array of relevant hashtags and keywords)
-        4. thumbnailDescription (detailed description of an optimal thumbnail)
-        5. category (content category)
-        6. audioTrack (suggested track name/style)
-        7. duration (in seconds, matches the storyboard)
-        8. resolution (recommended resolution for this platform)
-        9. captionSuggestions (key timestamps and caption text)`
-      }],
-      temperature: 0.7,
-      response_format: { type: "json_object" }
-    }),
-  });
-
-  const data = await response.json();
-  
   try {
-    return JSON.parse(data.choices[0].message.content);
-  } catch (e) {
-    console.error('Failed to parse metadata JSON:', e);
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [{
+          role: 'system',
+          content: `You are an expert in ${platform} optimization and content metadata.`
+        }, {
+          role: 'user',
+          content: `Create optimized metadata for this ${platform} video: "${prompt}"
+          
+          Based on this storyboard: ${JSON.stringify(videoContent)}
+          
+          Return a JSON object with:
+          1. title (attention-grabbing, optimized for CTR)
+          2. description (compelling with keywords)
+          3. tags (array of relevant hashtags and keywords)
+          4. thumbnailDescription (detailed description of an optimal thumbnail)
+          5. category (content category)
+          6. audioTrack (suggested track name/style)
+          7. duration (in seconds, matches the storyboard)
+          8. resolution (recommended resolution for this platform)
+          9. captionSuggestions (key timestamps and caption text)`
+        }],
+        temperature: 0.7,
+        response_format: { type: "json_object" }
+      }),
+    });
+
+    const data = await response.json();
     
-    // Return fallback metadata
-    return {
-      title: `Amazing ${prompt} You Need to See`,
-      description: `Check out this incredible video about ${prompt}. Follow for more amazing content!`,
-      tags: ["trending", "viral", prompt.replace(/\s+/g, ''), "amazing", "mustwatch"],
-      thumbnailDescription: `Eye-catching image of ${prompt} with bold text overlay`,
-      category: "Entertainment",
-      audioTrack: "Trending upbeat track",
-      duration: videoContent.totalDuration || 18,
-      resolution: platform === "YouTube" ? "1080x1920" : "1080x1920",
-      captionSuggestions: "Add captions highlighting key points for accessibility"
-    };
+    if (!data || !data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
+      console.error('No valid metadata returned from OpenAI:', data);
+      return createFallbackMetadata(prompt, videoContent);
+    }
+    
+    try {
+      return JSON.parse(data.choices[0].message.content);
+    } catch (e) {
+      console.error('Failed to parse metadata JSON:', e);
+      return createFallbackMetadata(prompt, videoContent);
+    }
+  } catch (error) {
+    console.error('Error generating metadata:', error);
+    return createFallbackMetadata(prompt, videoContent);
   }
+}
+
+function createFallbackMetadata(prompt, videoContent) {
+  // Return fallback metadata
+  return {
+    title: `Amazing ${prompt} You Need to See`,
+    description: `Check out this incredible video about ${prompt}. Follow for more amazing content!`,
+    tags: ["trending", "viral", prompt.replace(/\s+/g, ''), "amazing", "mustwatch"],
+    thumbnailDescription: `Eye-catching image of ${prompt} with bold text overlay`,
+    category: "Entertainment",
+    audioTrack: "Trending upbeat track",
+    duration: videoContent.totalDuration || 18,
+    resolution: "1080x1920",
+    captionSuggestions: "Add captions highlighting key points for accessibility"
+  };
 }
 
 async function mockVideoGeneration(prompt, platform, type, videoContent) {
