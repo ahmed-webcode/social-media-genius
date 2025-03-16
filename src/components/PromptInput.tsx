@@ -33,16 +33,8 @@ const PromptInput = ({ prompt, onChange }: PromptInputProps) => {
     setIsGenerating(true);
     
     try {
-      // Get the latest training from Supabase to inform AI generation
-      const { data: trainingLogs } = await supabase
-        .from('training_logs')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(1);
-      
-      const styleFeatures = trainingLogs?.[0]?.metadata?.styleFeatures;
-      
-      // Call the auto-content-pipeline function
+      // Call the auto-content-pipeline function directly
+      // The function will handle fetching training data internally
       const { data, error } = await supabase.functions.invoke("auto-content-pipeline");
       
       if (error) throw new Error(error.message);

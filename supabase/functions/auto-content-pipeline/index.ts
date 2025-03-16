@@ -32,8 +32,27 @@ serve(async (req) => {
     }
     
     // Extract style features from training data if available
-    const styleFeatures = trainingLogs?.[0]?.metadata?.styleFeatures || null;
-    console.log('Using style features:', styleFeatures);
+    // Use a default set of style features if no training data is available
+    let styleFeatures = null;
+    if (trainingLogs && trainingLogs.length > 0 && trainingLogs[0]?.metadata?.styleFeatures) {
+      styleFeatures = trainingLogs[0].metadata.styleFeatures;
+      console.log('Using style features from training:', styleFeatures);
+    } else {
+      // Default style features when no training data is available
+      styleFeatures = {
+        visualStyle: "high-contrast",
+        colorGrading: "vibrant",
+        cameraMovements: ["pan", "zoom", "tilt", "tracking"],
+        transitions: ["fade", "whip-pan", "slide", "zoom"],
+        pacing: "fast",
+        audioFeatures: {
+          musicType: "upbeat"
+        },
+        composition: "dynamic",
+        lighting: "dramatic"
+      };
+      console.log('Using default style features:', styleFeatures);
+    }
     
     // Generate 3 viral topics with enhanced quality using the trained style
     const topics = await generateViralTopics(styleFeatures);

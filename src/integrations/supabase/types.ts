@@ -130,6 +130,36 @@ export type Database = {
           },
         ]
       }
+      training_logs: {
+        Row: {
+          created_at: string
+          id: string
+          metadata: Json | null
+          platform: string | null
+          samples_count: number | null
+          status: string
+          video_type: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          platform?: string | null
+          samples_count?: number | null
+          status: string
+          video_type?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          platform?: string | null
+          samples_count?: number | null
+          status?: string
+          video_type?: string | null
+        }
+        Relationships: []
+      }
       trending_topics: {
         Row: {
           created_at: string | null
