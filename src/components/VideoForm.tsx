@@ -67,8 +67,19 @@ const VideoForm = ({ connectedPlatforms, onSuccess }: VideoFormProps) => {
             }
           });
 
-          if (error || data?.status === 'error') {
-            throw new Error(`Failed to generate video for ${platform}: ${data?.message || error.message}`);
+          if (error) {
+            console.error(`Function error for ${platform}:`, error);
+            throw new Error(`Failed to generate video for ${platform}: ${error.message}`);
+          }
+          
+          if (data?.status === 'error') {
+            console.error(`API error for ${platform}:`, data.message);
+            throw new Error(`Failed to generate video for ${platform}: ${data.message}`);
+          }
+
+          if (!data?.videoUrl) {
+            console.error(`Missing video URL for ${platform}:`, data);
+            throw new Error(`Failed to get video URL for ${platform}`);
           }
 
           return {
@@ -107,7 +118,10 @@ const VideoForm = ({ connectedPlatforms, onSuccess }: VideoFormProps) => {
         .from('scheduled_posts')
         .insert(posts);
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error('Error inserting posts:', insertError);
+        throw insertError;
+      }
 
       // Dismiss scheduling toast and show success
       toast.dismiss(schedulingToast);
