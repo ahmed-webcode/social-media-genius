@@ -53,7 +53,7 @@ const VideoForm = ({ connectedPlatforms, onSuccess }: VideoFormProps) => {
       }
 
       // Show initial toast
-      const generatingToast = toast.loading("Generating high-quality videos with invideo.io...");
+      const generatingToast = toast.loading("Generating high-quality videos...");
 
       // Generate videos for each selected platform
       const generatedVideos = await Promise.all(
@@ -75,11 +75,6 @@ const VideoForm = ({ connectedPlatforms, onSuccess }: VideoFormProps) => {
           if (data?.status === 'error') {
             console.error(`API error for ${platform}:`, data.message);
             throw new Error(`Failed to generate video for ${platform}: ${data.message}`);
-          }
-
-          if (!data?.videoUrl) {
-            console.error(`Missing video URL for ${platform}:`, data);
-            throw new Error(`Failed to get video URL for ${platform}`);
           }
 
           return {
@@ -125,7 +120,7 @@ const VideoForm = ({ connectedPlatforms, onSuccess }: VideoFormProps) => {
 
       // Dismiss scheduling toast and show success
       toast.dismiss(schedulingToast);
-      toast.success(`Successfully scheduled ${posts.length} videos with invideo.io!`);
+      toast.success(`Successfully scheduled ${posts.length} videos!`);
       
       // Reset form
       setPrompt("");
@@ -166,7 +161,7 @@ const VideoForm = ({ connectedPlatforms, onSuccess }: VideoFormProps) => {
         disabled={loading || !prompt || selectedPlatforms.length === 0}
         className="w-full py-6 text-lg font-semibold transition-all duration-300 hover:scale-[1.02]"
       >
-        {loading ? "Generating Videos with invideo.io..." : "Generate & Schedule Videos"}
+        {loading ? "Generating Videos..." : "Generate & Schedule Videos"}
       </Button>
     </div>
   );

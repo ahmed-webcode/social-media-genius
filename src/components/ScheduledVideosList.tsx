@@ -27,16 +27,28 @@ const ScheduledVideosList = ({ scheduledPosts, onPostDeleted }: ScheduledVideosL
 
   // Function to handle video generation and preview
   const handlePreviewVideo = useCallback(async (post: ScheduledPost) => {
-    // Generate the video and get its URL
-    const videoUrl = await generateRealVideo(post);
-    
-    if (videoUrl) {
-      setPreviewVideo({
-        url: videoUrl,
-        title: post.prompt,
-        platform: post.platform,
-        open: true
-      });
+    try {
+      // Show loading toast
+      const generatingToast = toast.loading(`Generating ${post.platform} video preview...`);
+      
+      // Generate the video and get its URL
+      const videoUrl = await generateRealVideo(post);
+      
+      toast.dismiss(generatingToast);
+      
+      if (videoUrl) {
+        setPreviewVideo({
+          url: videoUrl,
+          title: post.prompt,
+          platform: post.platform,
+          open: true
+        });
+      } else {
+        throw new Error("Failed to generate video preview");
+      }
+    } catch (error: any) {
+      console.error("Error generating video preview:", error);
+      toast.error(`Failed to generate preview: ${error.message}`);
     }
   }, []);
 
