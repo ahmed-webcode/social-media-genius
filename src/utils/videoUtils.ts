@@ -344,6 +344,12 @@ export const drawProgressBar = (
 // Function to generate real video preview with animated scenes
 export const generateRealVideo = async (post: any) => {
   try {
+    // Check if we have a direct video URL from invideo.io
+    if (post.video_url && post.video_url.includes('invideo.io')) {
+      toast.success(`${post.platform} video is already available!`);
+      return post.video_url;
+    }
+    
     // Show loading toast
     const generatingToast = toast.loading(`Creating ${post.platform} video preview...`);
     
