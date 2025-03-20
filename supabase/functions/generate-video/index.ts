@@ -11,16 +11,52 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
 serve(async (req) => {
+  console.log("Generate video function called with method:", req.method);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log("Handling CORS preflight request");
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { prompt, platform, generateShorts } = await req.json();
+    let requestBody;
+    try {
+      requestBody = await req.json();
+      console.log(`Request received with prompt: ${requestBody.prompt?.substring(0, 30)}...`);
+    } catch (error) {
+      console.error("Failed to parse request JSON:", error);
+      return new Response(JSON.stringify({
+        status: 'error',
+        message: 'Invalid JSON in request body',
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    const { prompt, platform, generateShorts } = requestBody;
     
     if (!prompt) {
-      throw new Error('Prompt is required');
+      console.error("Missing required parameter: prompt");
+      return new Response(JSON.stringify({
+        status: 'error',
+        message: 'Prompt is required',
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    if (!platform) {
+      console.error("Missing required parameter: platform");
+      return new Response(JSON.stringify({
+        status: 'error',
+        message: 'Platform is required',
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
     
     console.log(`Generating video for platform: ${platform}, prompt: ${prompt.substring(0, 50)}...`);
@@ -65,7 +101,7 @@ serve(async (req) => {
 });
 
 async function generateContent(prompt, platform) {
-  console.log(`Generating content for ${platform} with prompt: ${prompt}`);
+  console.log(`Generating content for ${platform} with prompt: ${prompt.substring(0, 50)}...`);
   
   try {
     // Instead of calling external API, generate content locally
@@ -177,7 +213,7 @@ async function generateVideoMetadata(prompt, platform) {
     thumbnailDescription: 'Generated thumbnail',
     category: 'Entertainment',
     audioTrack: 'Generated audio',
-    duration: totalDuration,
+    duration: platform === 'YouTube' ? 60 : 30,
     resolution: platform === 'YouTube' ? '1920x1080' : '1080x1920'
   };
 }

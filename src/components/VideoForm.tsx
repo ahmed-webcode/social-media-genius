@@ -56,9 +56,13 @@ const VideoForm = ({ connectedPlatforms, onSuccess }: VideoFormProps) => {
       const generatingToast = toast.loading("Generating high-quality videos...");
 
       // Generate videos for each selected platform
-      const generatedVideos = await Promise.all(
-        selectedPlatforms.map(async (platform) => {
-          // Call the generate-video function for each platform
+      const generatedVideos = [];
+      
+      for (const platform of selectedPlatforms) {
+        try {
+          console.log(`Calling generate-video function for ${platform}...`);
+          
+          // Call the generate-video function for this platform
           const { data, error } = await supabase.functions.invoke('generate-video', {
             body: { 
               prompt,
@@ -77,14 +81,19 @@ const VideoForm = ({ connectedPlatforms, onSuccess }: VideoFormProps) => {
             throw new Error(`Failed to generate video for ${platform}: ${data.message}`);
           }
 
-          return {
+          generatedVideos.push({
             platform,
             videoUrl: data.videoUrl,
             shortsUrl: data.shortsUrl,
             metadata: data.metadata
-          };
-        })
-      );
+          });
+          
+          console.log(`Successfully generated video for ${platform}`);
+        } catch (error) {
+          console.error(`Error processing platform ${platform}:`, error);
+          throw error; // Re-throw to be caught by the outer try/catch
+        }
+      }
 
       // Dismiss the generating toast
       toast.dismiss(generatingToast);
