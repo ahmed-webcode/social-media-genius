@@ -60,7 +60,7 @@ export async function handleRequest(req: Request) {
         .from('video_models')
         .select('*')
         .eq('id', useModel)
-        .single()
+        .maybeSingle()
 
       if (modelError) {
         console.error(`Error fetching model: ${modelError.message}`)

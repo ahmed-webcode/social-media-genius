@@ -190,6 +190,33 @@ export type Database = {
         }
         Relationships: []
       }
+      video_models: {
+        Row: {
+          created_at: string
+          id: string
+          platform: string
+          reference_videos: string[]
+          style_features: Json
+          video_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          platform: string
+          reference_videos: string[]
+          style_features: Json
+          video_type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          platform?: string
+          reference_videos?: string[]
+          style_features?: Json
+          video_type?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
