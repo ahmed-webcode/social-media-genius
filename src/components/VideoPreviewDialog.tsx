@@ -5,26 +5,33 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 export interface VideoPreviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  videoUrl: string | null;
+  videoUrl?: string | null;
+  url?: string | null;
   title: string;
+  platform?: string;
 }
 
 const VideoPreviewDialog = ({ 
   open, 
   onOpenChange, 
   videoUrl, 
-  title 
+  url,
+  title,
+  platform 
 }: VideoPreviewDialogProps) => {
+  // Use either videoUrl or url property
+  const videoSource = videoUrl || url || null;
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle>{title}{platform && ` (${platform})`}</DialogTitle>
         </DialogHeader>
         <div className="flex-1 min-h-0 overflow-hidden rounded-md">
-          {videoUrl ? (
+          {videoSource ? (
             <video 
-              src={videoUrl} 
+              src={videoSource} 
               controls 
               autoPlay 
               className="w-full h-full object-contain"

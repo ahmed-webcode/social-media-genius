@@ -143,7 +143,7 @@ const ScheduledVideosList = ({ scheduledPosts, onPostDeleted }: ScheduledVideosL
         open={previewVideo.open}
         onOpenChange={(open) => setPreviewVideo(prev => ({ ...prev, open }))}
         title={previewVideo.title}
-        url={previewVideo.url}
+        videoUrl={previewVideo.url}
         platform={previewVideo.platform}
       />
     </div>

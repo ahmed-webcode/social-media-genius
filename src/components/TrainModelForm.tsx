@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +12,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "./ui/badge";
 
 // Import for Remotion video rendering
-import { Player } from "@remotion/player";
 import VideoPreviewDialog from "./VideoPreviewDialog";
 import RemotionVideo from "./RemotionVideo";
 
@@ -43,17 +41,17 @@ const TrainModelForm = () => {
   
   const fetchTrainedModels = async () => {
     try {
-      // Using raw SQL query to fetch data from video_models table to work around TypeScript limitations
+      // Using RPC to fetch data from video_models table
       const { data, error } = await supabase
-        .rpc('get_video_models', {});
+        .rpc('get_video_models');
         
       if (error) {
         console.error("Error fetching trained models:", error);
-        // Fallback to direct query if RPC fails
+        // Fallback to direct query if RPC fails - we'll handle this as an untyped query
         const { data: directData, error: directError } = await supabase
           .from('video_models')
           .select('*')
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false }) as any;
           
         if (directError) {
           console.error("Error with direct query:", directError);
