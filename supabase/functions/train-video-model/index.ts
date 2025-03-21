@@ -83,11 +83,30 @@ export async function handleRequest(req: Request) {
     // Extract the most common features across the analyzed videos to create a composite style
     const compositeStyle = generateCompositeStyle(analyzedReferenceVideos);
 
-    // Connect to Supabase to store training status
+    // Connect to Supabase to store training status and model data
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    
+    // Generate a unique model ID
+    const modelId = crypto.randomUUID();
+    
+    // Store the model in the database so it can be used for future videos
+    const { error: modelError } = await supabase
+      .from('video_models')
+      .insert({
+        id: modelId,
+        platform,
+        video_type: videoType,
+        style_features: compositeStyle,
+        reference_videos: referenceVideos,
+        created_at: new Date().toISOString()
+      })
+    
+    if (modelError) {
+      console.error('Error storing video model:', modelError);
+    }
     
     // Log training event with reference videos included
     const { error: logError } = await supabase
@@ -97,6 +116,7 @@ export async function handleRequest(req: Request) {
         video_type: videoType,
         samples_count: trainingData?.length || 0,
         status: 'completed',
+        model_id: modelId,
         metadata: { 
           trainingCompleted: new Date().toISOString(),
           referenceVideos: analyzedReferenceVideos,
@@ -109,11 +129,12 @@ export async function handleRequest(req: Request) {
       console.error('Error logging training event:', logError)
     }
 
-    // Return success response with reference video analysis included
+    // Return success response with reference video analysis and model ID included
     return new Response(
       JSON.stringify({
         status: 'success',
         message: 'Model training completed successfully',
+        modelId,
         details: {
           platform,
           videoType,
@@ -223,6 +244,9 @@ async function enhanceVideoAnalysisWithAI(videoId: string, baseFeatures: any, ap
     - lighting: The lighting technique
     - narrativeStyle: How the story is told
     - editingStyle: The post-production approach
+    - customFont: Suggested font style for similar videos
+    - textAnimations: Array of 2-4 text animation styles to use
+    - colorPalette: Array of 3-5 hex color codes that match the video's aesthetic
     
     Format your response ONLY as a valid JSON object with these properties.
     `;
@@ -293,7 +317,10 @@ function generateCompositeStyle(videoAnalyses: any[]) {
       narrativeStyle: "direct-engagement",
       composition: "dynamic",
       lighting: "dramatic",
-      editingStyle: "fast-paced"
+      editingStyle: "fast-paced",
+      customFont: "Montserrat",
+      textAnimations: ["fade-in", "slide-from-bottom", "scale-in"],
+      colorPalette: ["#FF5733", "#33A8FF", "#33FF57", "#F033FF"]
     };
   }
   
@@ -366,6 +393,33 @@ function generateCompositeStyle(videoAnalyses: any[]) {
   const dominantNarrativeStyle = Object.entries(narrativeStyleCounts)
     .sort((a, b) => b[1] - a[1])[0][0];
   
+  // Extract fonts and text animations if available
+  const customFonts = videoAnalyses
+    .filter(v => v.features.customFont)
+    .map(v => v.features.customFont);
+    
+  const dominantFont = customFonts.length > 0 
+    ? customFonts[0] 
+    : "Montserrat";
+    
+  // Extract text animations
+  const allTextAnimations = videoAnalyses
+    .filter(v => v.features.textAnimations)
+    .flatMap(v => v.features.textAnimations || []);
+  
+  const textAnimations = allTextAnimations.length > 0 
+    ? [...new Set(allTextAnimations)].slice(0, 4) 
+    : ["fade-in", "slide-from-bottom", "scale-in"];
+    
+  // Extract color palettes
+  const allColorPalettes = videoAnalyses
+    .filter(v => v.features.colorPalette)
+    .flatMap(v => v.features.colorPalette || []);
+    
+  const colorPalette = allColorPalettes.length > 0 
+    ? [...new Set(allColorPalettes)].slice(0, 5) 
+    : ["#FF5733", "#33A8FF", "#33FF57", "#F033FF"];
+  
   // Build the composite style with more detailed features
   return {
     visualStyle: dominantVisualStyle,
@@ -382,7 +436,10 @@ function generateCompositeStyle(videoAnalyses: any[]) {
     narrativeStyle: dominantNarrativeStyle,
     composition: videoAnalyses[0].features.composition || "dynamic",
     lighting: videoAnalyses[0].features.lighting || "dramatic",
-    editingStyle: dominantEditingStyle
+    editingStyle: dominantEditingStyle,
+    customFont: dominantFont,
+    textAnimations: textAnimations,
+    colorPalette: colorPalette
   };
 }
 

@@ -1,16 +1,20 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Brain, Plus, Trash, Eye } from "lucide-react";
-import { Textarea } from "./ui/textarea";
+import { Brain, Plus, Trash, Eye, Play } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "./ui/badge";
+
+// Import for Remotion video rendering
+import { Player } from "remotion/player";
+import VideoPreviewDialog from "./VideoPreviewDialog";
 
 const TrainModelForm = () => {
   const [loading, setLoading] = useState(false);
@@ -25,6 +29,30 @@ const TrainModelForm = () => {
   const [newVideoUrl, setNewVideoUrl] = useState<string>("");
   const [analysisResults, setAnalysisResults] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<string>("main");
+  const [trainedModels, setTrainedModels] = useState<any[]>([]);
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
+  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
+  const [previewVideoUrl, setPreviewVideoUrl] = useState<string | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
+  
+  // Fetch previously trained models on initial load
+  useEffect(() => {
+    fetchTrainedModels();
+  }, []);
+  
+  const fetchTrainedModels = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('video_models')
+        .select('*')
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
+      if (data) setTrainedModels(data);
+    } catch (error: any) {
+      console.error("Error fetching trained models:", error);
+    }
+  };
 
   const handleAddReferenceVideo = () => {
     if (!newVideoUrl) return;
@@ -110,6 +138,16 @@ const TrainModelForm = () => {
       
       // Set analysis results and switch to analytics tab
       setAnalysisResults(data.details);
+      
+      // Refresh the list of trained models
+      await fetchTrainedModels();
+      
+      // Set the newly created model as selected
+      if (data.modelId) {
+        setSelectedModel(data.modelId);
+      }
+      
+      // Switch to analytics tab
       setActiveTab("analytics");
       
     } catch (error: any) {
@@ -120,7 +158,7 @@ const TrainModelForm = () => {
       setLoading(false);
     }
   };
-
+  
   const renderAnalyticsContent = () => {
     if (!analysisResults) {
       return (
@@ -183,6 +221,31 @@ const TrainModelForm = () => {
                 }
               </div>
             </div>
+            {styleFeatures.colorPalette && (
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Color Palette</p>
+                <div className="flex gap-1">
+                  {styleFeatures.colorPalette.map((color: string, i: number) => (
+                    <div 
+                      key={i} 
+                      className="w-8 h-8 rounded-full border border-gray-300" 
+                      style={{ backgroundColor: color }}
+                      title={color}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+            {styleFeatures.textAnimations && (
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Text Animations</p>
+                <div className="flex flex-wrap gap-1">
+                  {styleFeatures.textAnimations.map((animation: string, i: number) => (
+                    <Badge key={i} variant="secondary">{animation}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -191,8 +254,61 @@ const TrainModelForm = () => {
             Trained on {new Date(trainingCompleted).toLocaleDateString()} at {new Date(trainingCompleted).toLocaleTimeString()}
           </p>
         </div>
+        
+        <Button 
+          onClick={generateSampleVideo} 
+          disabled={loadingPreview}
+          className="w-full"
+        >
+          {loadingPreview ? (
+            <>Generating Preview...</>
+          ) : (
+            <>
+              <Play className="h-4 w-4 mr-2" />
+              Generate Sample Video
+            </>
+          )}
+        </Button>
       </div>
     );
+  };
+  
+  const generateSampleVideo = async () => {
+    if (!analysisResults) return;
+    
+    setLoadingPreview(true);
+    const generatingToast = toast.loading("Generating sample video with trained model...");
+    
+    try {
+      // Generate a sample video based on the trained model
+      const samplePrompt = `A short video about ${videoType} for ${platform} showcasing key features`;
+      
+      // Call the generate-video function with the model ID
+      const { data, error } = await supabase.functions.invoke("generate-video", {
+        body: {
+          prompt: samplePrompt,
+          platform,
+          useModel: selectedModel || analysisResults.modelId,
+        },
+      });
+      
+      if (error) throw new Error(error.message);
+      
+      // Set the preview URL and open the dialog
+      const videoBlob = new Blob([data.videoData], { type: 'video/mp4' });
+      const videoUrl = URL.createObjectURL(videoBlob);
+      setPreviewVideoUrl(videoUrl);
+      setPreviewDialogOpen(true);
+      
+      toast.dismiss(generatingToast);
+      toast.success("Sample video generated successfully!");
+    } catch (error: any) {
+      console.error("Error generating sample video:", error);
+      toast.dismiss(generatingToast);
+      toast.error(`Failed to generate sample video: ${error.message}`);
+    } finally {
+      setLoadingPreview(false);
+    }
   };
 
   return (
@@ -205,9 +321,10 @@ const TrainModelForm = () => {
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="main">Training</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="models">My Models</TabsTrigger>
           </TabsList>
           
           <TabsContent value="main" className="space-y-4">
@@ -315,8 +432,81 @@ const TrainModelForm = () => {
           <TabsContent value="analytics">
             {renderAnalyticsContent()}
           </TabsContent>
+          
+          <TabsContent value="models">
+            <div className="space-y-4">
+              {trainedModels.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>No trained models yet. Go to the Training tab to create one!</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <h3 className="text-sm font-medium">Your Trained Models</h3>
+                  <div className="space-y-2">
+                    {trainedModels.map((model) => (
+                      <div 
+                        key={model.id}
+                        className={`p-3 rounded-md border cursor-pointer transition-colors hover:bg-secondary/30 ${selectedModel === model.id ? 'border-primary bg-secondary/20' : 'border-border'}`}
+                        onClick={() => {
+                          setSelectedModel(model.id);
+                          // Load model details into analysisResults
+                          setAnalysisResults({
+                            styleFeatures: model.style_features,
+                            referenceVideosAnalyzed: model.reference_videos.length,
+                            trainingCompleted: model.created_at,
+                            modelId: model.id
+                          });
+                        }}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-medium">{model.platform} {model.video_type}</h4>
+                            <p className="text-xs text-muted-foreground">
+                              Created {new Date(model.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedModel(model.id);
+                                setAnalysisResults({
+                                  styleFeatures: model.style_features,
+                                  referenceVideosAnalyzed: model.reference_videos.length,
+                                  trainingCompleted: model.created_at,
+                                  modelId: model.id
+                                });
+                                setActiveTab("analytics");
+                              }}
+                            >
+                              View Details
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          <Badge variant="outline">{model.platform}</Badge>
+                          <Badge variant="outline">{model.video_type}</Badge>
+                          <Badge variant="outline">{model.style_features.visualStyle}</Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </TabsContent>
         </Tabs>
       </CardContent>
+      
+      {/* Video Preview Dialog */}
+      <VideoPreviewDialog
+        open={previewDialogOpen}
+        onOpenChange={setPreviewDialogOpen}
+        videoUrl={previewVideoUrl}
+        title="Sample Video from Trained Model"
+      />
     </Card>
   );
 };
