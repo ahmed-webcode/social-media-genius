@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,7 +44,7 @@ const TrainModelForm = () => {
     try {
       // Using RPC to fetch data from video_models table
       const { data, error } = await supabase
-        .rpc('get_video_models');
+        .rpc('get_video_models') as any; // Use type assertion to bypass TypeScript check
         
       if (error) {
         console.error("Error fetching trained models:", error);
